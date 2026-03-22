@@ -20,6 +20,9 @@ int main(void) {
   formatp("-1 is %d\n", -1);
   formatp("%d is %b 2 and %o 8 and %x %X 16\n", 
           79, 79, 79, 79, 79);
+
+  formatp("gwonk is that true: %B\n", 10);
+  formatp("gonk  is that twue: %B\n", 1 - 1);
   
   formatp("%s is a string that isnt %s, wow\n", "Hello", NULL);
 

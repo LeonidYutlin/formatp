@@ -55,8 +55,10 @@ handle_fmt_str:
       inc rsi
 
       cmp al, 'X' ; edge case no. 1
-      je fmt_hex_u 
-      cmp al, '%' ; edge case no. 2
+      je fmt_hex_u
+      cmp al, 'B' ; edge case no. 2
+      je fmt_bool 
+      cmp al, '%' ; edge case no. 3
       je fmt_percent
       cmp al, 'b' ; any below is def-tly an error
       jb fmt_error
@@ -73,7 +75,38 @@ handle_fmt_str:
   	  mov rsi, formatp_buf
   	  call buf_flush
       ret
- 
+
+fmt_bool:
+  push rsi
+  mov rdi, formatp_buf
+  call strlen
+
+  mov rdx, rax
+  mov rsi, formatp_buf
+  call buf_flush
+
+  mov rsi, [rbp + r9 * 8]
+  inc r9
+  test rsi, rsi
+  jz .false
+  mov rsi, true_str
+  mov rdx, true_str_len
+  mov rax, 0x1
+  mov rdi, 0x1
+  syscall
+  pop rsi
+  mov rdi, formatp_buf
+  jmp fmt_str_loop
+  .false:
+  mov rsi, false_str
+  mov rdx, false_str_len
+  mov rdi, 0x1
+  mov rax, 0x1
+  syscall
+  pop rsi
+  mov rdi, formatp_buf
+  jmp fmt_str_loop
+
 fmt_percent:
   mov al, '%'
   call buf_append_ch 
@@ -253,6 +286,11 @@ hex_alpha_upper: db "0123456789ABCDEF"
 
 null_str: db "(null)"
 null_str_len equ $ - null_str
+
+false_str: db "false"
+false_str_len equ $ - false_str
+true_str: db "true"
+true_str_len equ $ - true_str
 
 fmt_error_str: db 0x0A, "[ERROR]: Unrecognized escape sequence: '%%%c'", 0x0A, 0
 
