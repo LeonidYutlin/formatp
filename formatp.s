@@ -1,9 +1,11 @@
 global formatp
+extern strlen
+extern clear_buffer
 
-BUF_SZ equ 256
+BUF_SZ equ 16
 
 section .bss
-outbuf: resb BUF_SZ
+formatp_buf: resb BUF_SZ
 
 section .text
 
@@ -51,13 +53,35 @@ Num2Str:
 formatp:
   .convert:
     mov rax, rdi
-  	mov rdi, outbuf
+  	mov rdi, formatp_buf
+  	call Num2Str
+ 
+  .print:
+    mov rdi, formatp_buf
+    call strlen ; call to a libc function
+
+    mov rdx, rax ; strlen return is now used as count
+  	mov rax, 0x1
+  	mov rsi, formatp_buf
+  	mov rdi, 0x1
+  	syscall
+
+    mov rdi, formatp_buf
+    mov rsi, rdx ; still using that strlen return as count
+                 ; since it is not changed by prev syscall
+    call clear_buffer ; call to my own function in main.c
+  ret
+
+formatp1:
+  .convert:
+    mov rax, rdi
+  	mov rdi, formatp_buf
   	call Num2Str
  
   .print:
   	mov rdx, rcx
   	mov rax, 0x1
-  	mov rsi, outbuf
+  	mov rsi, formatp_buf
   	mov rdi, 0x1
   	syscall
   ret
