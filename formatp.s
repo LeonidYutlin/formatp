@@ -2,10 +2,10 @@ global formatp
 extern strlen
 extern clear_buffer
 
-BUF_SZ equ 64
+buf_sz equ 8
 
 section .bss
-formatp_buf: resb BUF_SZ
+formatp_buf: resb buf_sz
 
 section .text
 
@@ -70,21 +70,23 @@ formatp:
     call strlen ; call to a libc function
 
     mov rdx, rax ; strlen return is now used as count
-  	mov rax, 0x1
   	mov rsi, formatp_buf
-  	mov rdi, 0x1
-  	syscall
-    mov rdi, formatp_buf
-    call clear_buffer ; call to my own function in main.c
+  	call buf_flush
 
     pop rbp
 
-    add rsp, 8 * 6 ; equivalent to pop rdi, rsi, ..., r9
+    pop rdi
+    pop rsi
+    pop rdx
+    pop rcx 
+    pop r8
+    pop r9
+
     push r15 ; push saved ret address onto the stack
     ret
 
 handle_fmt_str:
-  mov r13, 2 ; how many 8 offsets are we into the stack
+  mov r9, 2 ; how many 8 offsets are we into the stack
   mov rdi, formatp_buf
   .loop:
     mov al, [rsi]
@@ -95,20 +97,20 @@ handle_fmt_str:
       inc rsi
       cmp al, 'c'
       jne .not_char
-      mov al, [rbp + r13 * 8]
-      inc r13
-      stosb
+      mov al, [rbp + r9 * 8]
+      inc r9
+      call buf_append_ch
       jmp .loop
       .not_char:
       cmp al, '%'
       jne .error
       mov al, '%'
-      stosb
+      call buf_append_ch
       jmp .loop
     .not_escape:
     cmp al, 0
     je .return
-    movsb
+    call buf_movsb
   jmp .loop
   .return:
     ret
@@ -126,6 +128,41 @@ handle_fmt_str:
     pop rbp
     add rsp, 8 * 2
     ret
+
+buf_movsb:
+  ;push rax
+  mov al, [rsi]
+  call buf_append_ch
+  inc rsi
+  ;pop rax
+  ret 
+
+; appends a character at AL to buffer. If buffer is full, flushes it
+buf_append_ch:
+  cmp rdi, formatp_buf + buf_sz
+  je .flush
+  .store:
+  stosb
+  ret
+  .flush:
+  push rax
+  push rsi
+  mov rsi, formatp_buf
+  mov rdx, buf_sz
+  call buf_flush
+  pop rsi
+  pop rax
+  mov rdi, formatp_buf
+  jmp .store
+
+buf_flush:
+  mov rax, 0x1
+  mov rdi, 0x1
+  syscall
+  mov rdi, formatp_buf
+  call clear_buffer ; call to my own function in main.c
+  ret
+
 
 section .data
 

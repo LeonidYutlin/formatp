@@ -20,7 +20,7 @@ int main(void) {
   //        "Wello Horld!", 
   //        123);
   formatp("Hi %% I %c m %% atring\n", 'W');
-  formatp("Qwerty %% %c %c %c", 'A', 'p', 'D');
+  formatp("Qwerty %% %c %c %c\n", 'A', 'p', 'D');
   formatp("Hello blabla %% %A", 'A', 'p', 'D');
   return 0;
 }
