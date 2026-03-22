@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-extern void formatp(int a);
+extern void formatp(long a);
 
 int main(void) {
   // printf("As a printf function i can do a lot:\n"
@@ -10,6 +10,6 @@ int main(void) {
   //        'A', 
   //        "Wello Horld!", 
   //        123);
-  formatp(555);
+  formatp(6789088921878713);
   return 0;
 }

@@ -50,7 +50,7 @@ Num2Str:
 
 formatp:
   .convert:
-    mov rax, 890
+    mov rax, rdi
   	mov rdi, outbuf
   	call Num2Str
  
