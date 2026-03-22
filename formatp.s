@@ -2,53 +2,12 @@ global formatp
 extern strlen
 extern clear_buffer
 
-buf_sz equ 8
+buf_sz equ 16
 
 section .bss
 formatp_buf: resb buf_sz
 
 section .text
-
-;--------------
-; Num2Str - converts decimal number to string of bytes (uses stack to reverse the order)
-; Input:  rax    = number to convert
-;         es:rdi -> destination to convert into
-; Output: rcx = amount of characters written
-; Destr:  rax, rdi, rbx, rdx 
-;--------------
-Num2Str:
-	mov rbx, 10
-  xor rcx, rcx
-  test rax, rax
-  jz .zero
-.windup:
-	test rax, rax
-	jz .pre_unwind
-	xor rdx, rdx
-	div rbx ; rax = rax/rbx, rdx = rax % rbx
-	add dl, '0'
-  dec rsp
-  mov byte [rsp], dl
-  inc rcx
-  jmp .windup
-.pre_unwind:
-  mov rbx, rcx
-.unwind:
-  test rcx, rcx
-  jz .exit
-  mov byte dl, [rsp]
-  inc rsp
-  mov byte [rdi], dl
-  inc rdi
-  loop .unwind
-.exit:
-  mov rcx, rbx
-  ret
-.zero:
-  mov [rdi], '0'
-  inc rdi
-  mov rcx, 1
-  ret
 
 formatp:
   pop r15 ; save return address since we will iterate through stack
@@ -88,46 +47,103 @@ formatp:
 handle_fmt_str:
   mov r9, 2 ; how many 8 offsets are we into the stack
   mov rdi, formatp_buf
-  .loop:
+  fmt_str_loop:
     mov al, [rsi]
     cmp al, '%'
-    jne .not_escape
+    je .escape
+      cmp al, 0
+      jne .no_return
+      ret
+      .no_return:
+      call buf_movsb
+      jmp fmt_str_loop
+    .escape:
       inc rsi
+      xor rax, rax
       mov al, [rsi]
       inc rsi
-      cmp al, 'c'
-      jne .not_char
-      mov al, [rbp + r9 * 8]
-      inc r9
-      call buf_append_ch
-      jmp .loop
-      .not_char:
-      cmp al, '%'
-      jne .error
-      mov al, '%'
-      call buf_append_ch
-      jmp .loop
-    .not_escape:
-    cmp al, 0
-    je .return
-    call buf_movsb
-  jmp .loop
-  .return:
-    ret
-  .error:
-    push rax
 
-    mov rdi, formatp_buf
-    call clear_buffer
+      cmp al, 'X' ; edge case no. 1
+      je fmt_hex_u 
+      cmp al, '%' ; edge case no. 2
+      je fmt_percent
+      cmp al, 'b' ; any below is def-tly an error
+      jb fmt_error
+      cmp al, 'x' ; any above is def-tly an error
+      ja fmt_error
+        
+      mov rbx, [jmp_table + (rax - 'b') * 8]
+      jmp rbx
+ 
+fmt_percent:
+  mov al, '%'
+  call buf_append_ch 
+  jmp fmt_str_loop
 
-    mov rsi, fmt_error_str
-    push rsi
-    push rbp ; save rbp
-    mov rbp, rsp
-    call handle_fmt_str
-    pop rbp
-    add rsp, 8 * 2
-    ret
+fmt_char:
+  mov al, [rbp + r9 * 8]
+  inc r9
+  call buf_append_ch
+  jmp fmt_str_loop
+
+fmt_hex_u:
+  mov rax, [rbp + r9 * 8]
+  inc r9
+  mov rbx, 16
+  mov r14, hex_alpha_upper
+  call num2str
+  jmp fmt_str_loop
+
+fmt_hex_l:
+  mov rax, [rbp + r9 * 8]
+  inc r9
+  mov rbx, 16
+  mov r14, hex_alpha_lower
+  call num2str
+  jmp fmt_str_loop
+
+fmt_decimal:
+  mov rax, [rbp + r9 * 8]
+  inc r9
+  mov rbx, 10
+  mov r14, hex_alpha_lower
+  call num2str
+  jmp fmt_str_loop
+
+fmt_binary:
+  mov rax, [rbp + r9 * 8]
+  inc r9
+  mov rbx, 2
+  mov r14, hex_alpha_lower
+  call num2str
+  jmp fmt_str_loop
+
+fmt_octal:
+  mov rax, [rbp + r9 * 8]
+  inc r9
+  mov rbx, 8
+  mov r14, hex_alpha_lower
+  call num2str
+  jmp fmt_str_loop
+
+fmt_error:
+  push rax
+
+  mov rdi, formatp_buf
+  call strlen 
+
+  mov rdx, rax 
+  mov rsi, formatp_buf
+  call buf_flush
+
+  mov rsi, fmt_error_str
+  push rsi
+  push rbp ; save rbp
+  mov rbp, rsp
+  call handle_fmt_str
+  pop rbp
+  add rsp, 8 * 2
+  ret
 
 buf_movsb:
   ;push rax
@@ -163,8 +179,56 @@ buf_flush:
   call clear_buffer ; call to my own function in main.c
   ret
 
+;--------------
+; num2str - converts number to string of bytes (uses stack to reverse the order)
+; Input:  rax    = number to convert
+;         rbx    = radix
+;         r14 -> alphabet string
+;         rdi -> destination to convert into
+; Destr:  rax, rdi, rdx, rcx 
+;--------------
+num2str:
+  xor rcx, rcx
+  test rax, rax
+  jz .zero
+.windup:
+	test rax, rax
+	jz .unwind
+	xor rdx, rdx
+	div rbx ; rax = rax / rbx, rdx = rax % rbx
+  mov dl, [r14 + rdx]
+  dec rsp
+  mov byte [rsp], dl
+  inc rcx
+  jmp .windup
+.unwind:
+  test rcx, rcx
+  jz .exit
+  mov byte al, [rsp]
+  inc rsp
+  call buf_append_ch
+  loop .unwind
+.exit:
+  ret
+.zero:
+  mov al, '0'
+  call buf_append_ch
+  ret
 
 section .data
 
-fmt_error_str: db 0x0A, "[ERROR]: Unrecognized escape sequence: '%%%c'", 0x0A
-fmt_error_str_len equ $ - fmt_error_str
+hex_alpha_lower: db "0123456789abcdef"
+hex_alpha_upper: db "0123456789ABCDEF"
+
+fmt_error_str: db 0x0A, "[ERROR]: Unrecognized escape sequence: '%%%c'", 0x0A, 0
+
+jmp_table:
+                          dq fmt_binary
+                          dq fmt_char
+                          dq fmt_decimal
+  times ('o' - 'd' - 1)   dq fmt_error
+                          dq fmt_octal
+  times ('s' - 'o' - 1)   dq fmt_error
+                          dq fmt_error;fmt_string
+  times ('x' - 's' - 1)   dq fmt_error
+                          dq fmt_hex_l
