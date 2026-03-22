@@ -25,13 +25,6 @@ formatp:
   call handle_fmt_str
  
   .return:
-    mov rdi, formatp_buf
-    call strlen ; call to a libc function
-
-    mov rdx, rax ; strlen return is now used as count
-  	mov rsi, formatp_buf
-  	call buf_flush
-
     pop rbp
 
     pop rdi
@@ -52,9 +45,7 @@ handle_fmt_str:
     cmp al, '%'
     je .escape
       cmp al, 0
-      jne .no_return
-      ret
-      .no_return:
+      je fmt_str_return
       call buf_movsb
       jmp fmt_str_loop
     .escape:
@@ -74,6 +65,14 @@ handle_fmt_str:
         
       mov rbx, [jmp_table + (rax - 'b') * 8]
       jmp rbx
+    fmt_str_return:
+      mov rdi, formatp_buf
+      call strlen ; call to a libc function
+
+      mov rdx, rax ; strlen return is now used as count
+  	  mov rsi, formatp_buf
+  	  call buf_flush
+      ret
  
 fmt_percent:
   mov al, '%'
@@ -84,6 +83,38 @@ fmt_char:
   mov al, [rbp + r9 * 8]
   inc r9
   call buf_append_ch
+  jmp fmt_str_loop
+
+fmt_string:
+  push rsi
+  mov rdi, formatp_buf
+  call strlen
+
+  mov rdx, rax
+  mov rsi, formatp_buf
+  call buf_flush
+
+  mov rsi, [rbp + r9 * 8]
+  inc r9
+  test rsi, rsi
+  jz .null
+  mov rdi, rsi
+  call strlen
+  mov rdx, rax
+  mov rax, 0x1
+  mov rdi, 0x1
+  syscall
+  pop rsi
+  mov rdi, formatp_buf
+  jmp fmt_str_loop
+  .null:
+  mov rdx, null_str_len
+  mov rsi, null_str
+  mov rdi, 0x1
+  mov rax, 0x1
+  syscall
+  pop rsi
+  mov rdi, formatp_buf
   jmp fmt_str_loop
 
 fmt_hex_u:
@@ -143,7 +174,7 @@ fmt_error:
   call handle_fmt_str
   pop rbp
   add rsp, 8 * 2
-  ret
+  jmp fmt_str_return
 
 buf_movsb:
   ;push rax
@@ -220,6 +251,9 @@ section .data
 hex_alpha_lower: db "0123456789abcdef"
 hex_alpha_upper: db "0123456789ABCDEF"
 
+null_str: db "(null)"
+null_str_len equ $ - null_str
+
 fmt_error_str: db 0x0A, "[ERROR]: Unrecognized escape sequence: '%%%c'", 0x0A, 0
 
 jmp_table:
@@ -229,6 +263,6 @@ jmp_table:
   times ('o' - 'd' - 1)   dq fmt_error
                           dq fmt_octal
   times ('s' - 'o' - 1)   dq fmt_error
-                          dq fmt_error;fmt_string
+                          dq fmt_string
   times ('x' - 's' - 1)   dq fmt_error
                           dq fmt_hex_l
