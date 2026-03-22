@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+//TODO: %s and %B shouldnt always cause a buffer flush
+
 extern void formatp(const char* fmt, ...)  /*__attribute__ ((format (printf, 1, 2)))*/;
 
 //Example of a function that will be called 
