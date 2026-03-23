@@ -1,4 +1,4 @@
-global formatp
+global fformatp
 extern strlen
 extern clear_buffer
 
@@ -9,7 +9,7 @@ formatp_buf: resb buf_sz
 
 section .text
 
-formatp:
+fformatp:
   pop r15 ; save return address since we will iterate through stack
 
   push r9  ; push register args to stack so that all 
@@ -17,11 +17,10 @@ formatp:
   push rcx ; from top to bottom
   push rdx ; as first to last
   push rsi ; for reference, r9 is sixth arg, and 
-  push rdi ; rdi is the first arg (fmt str)
+  push rdi ; rdi is the first arg (fd, second one is fmt str)
 
   push rbp ; save rbp
   mov rbp, rsp
-  mov rsi, rdi ; move fmt str to source index
   call handle_fmt_str
  
   .return:
@@ -38,7 +37,7 @@ formatp:
     ret
 
 handle_fmt_str:
-  mov r9, 2 ; how many 8 offsets are we into the stack
+  mov r9, 3 ; how many 8 offsets are we into the stack
   mov rdi, formatp_buf
   fmt_str_loop:
     mov al, [rsi]
@@ -74,7 +73,7 @@ handle_fmt_str:
       mov rdx, rax ; strlen return is now used as count
   	  mov rsi, formatp_buf
   	  call buf_flush
-      ret
+     ret
 
 fmt_bool:
   push rsi
@@ -92,7 +91,7 @@ fmt_bool:
   mov rsi, true_str
   mov rdx, true_str_len
   mov rax, 0x1
-  mov rdi, 0x1
+  mov rdi, [rbp + 8]
   syscall
   pop rsi
   mov rdi, formatp_buf
@@ -101,7 +100,7 @@ fmt_bool:
   mov rsi, false_str
   mov rdx, false_str_len
   mov rdi, 0x1
-  mov rax, 0x1
+  mov rax, [rbp + 8]
   syscall
   pop rsi
   mov rdi, formatp_buf
@@ -135,7 +134,7 @@ fmt_string:
   call strlen
   mov rdx, rax
   mov rax, 0x1
-  mov rdi, 0x1
+  mov rdi, [rbp + 8]
   syscall
   pop rsi
   mov rdi, formatp_buf
@@ -144,7 +143,7 @@ fmt_string:
   mov rdx, null_str_len
   mov rsi, null_str
   mov rdi, 0x1
-  mov rax, 0x1
+  mov rax, [rbp + 8]
   syscall
   pop rsi
   mov rdi, formatp_buf
@@ -191,6 +190,7 @@ fmt_octal:
   jmp fmt_str_loop
 
 fmt_error:
+  push [rbp + 2 * 8]
   push rax
 
   mov rdi, formatp_buf
@@ -202,11 +202,12 @@ fmt_error:
 
   mov rsi, fmt_error_str
   push rsi
+  push 2 ; push fd of stderr
   push rbp ; save rbp
   mov rbp, rsp
   call handle_fmt_str
   pop rbp
-  add rsp, 8 * 2
+  add rsp, 8 * 4
   jmp fmt_str_return
 
 buf_movsb:
@@ -237,7 +238,7 @@ buf_append_ch:
 
 buf_flush:
   mov rax, 0x1
-  mov rdi, 0x1
+  mov rdi, [rbp + 8] ; get fd we are currently working with
   syscall
   mov rdi, formatp_buf
   call clear_buffer ; call to my own function in main.c
@@ -292,7 +293,7 @@ false_str_len equ $ - false_str
 true_str: db "true"
 true_str_len equ $ - true_str
 
-fmt_error_str: db 0x0A, "[ERROR]: Unrecognized escape sequence: '%%%c'", 0x0A, 0
+fmt_error_str: db 0x0A, "[ERROR]: Unrecognized escape sequence: '%%%c' in ", 0x22, "%s", 0x22, 0x0A, 0
 
 jmp_table:
                           dq fmt_binary
