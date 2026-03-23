@@ -84,6 +84,7 @@ fmt_bool:
   inc r9
   test rsi, rsi
   jz .false
+  .true:
   mov rsi, true_str
   mov rdx, true_str_len
   mov rax, 0x1
@@ -124,6 +125,7 @@ fmt_string:
   inc r9
   test rsi, rsi
   jz .null
+  .nonnull:
   mov rdi, rsi
   call strlen
   mov rdx, rax
@@ -144,7 +146,7 @@ fmt_string:
   jmp fmt_str_loop
 
 fmt_hex_u:
-  mov rax, [rbp + r9 * 8]
+  mov eax, [rbp + r9 * 8]
   inc r9
   mov rbx, 16
   mov r14, hex_alpha_upper
@@ -152,7 +154,7 @@ fmt_hex_u:
   jmp fmt_str_loop
 
 fmt_hex_l:
-  mov rax, [rbp + r9 * 8]
+  mov eax, [rbp + r9 * 8]
   inc r9
   mov rbx, 16
   mov r14, hex_alpha_lower
@@ -160,15 +162,31 @@ fmt_hex_l:
   jmp fmt_str_loop
 
 fmt_decimal:
-  mov rax, [rbp + r9 * 8]
+  mov eax, [rbp + r9 * 8]
   inc r9
+  test eax, 0x80000000
+  jz fmt_decimal_common ; no need to handle minus
+  .handle_minus:
+  push rax
+  mov al, '-'
+  call buf_append_ch
+  pop rax
+  not eax
+  inc eax
+  jmp fmt_decimal_common
+ 
+
+fmt_unsign_decimal:
+  mov eax, [rbp + r9 * 8]
+  inc r9
+  fmt_decimal_common:
   mov rbx, 10
   mov r14, hex_alpha_lower
   call num2str
   jmp fmt_str_loop
 
 fmt_binary:
-  mov rax, [rbp + r9 * 8]
+  mov eax, [rbp + r9 * 8]
   inc r9
   mov rbx, 2
   mov r14, hex_alpha_lower
@@ -176,7 +194,7 @@ fmt_binary:
   jmp fmt_str_loop
 
 fmt_octal:
-  mov rax, [rbp + r9 * 8]
+  mov eax, [rbp + r9 * 8]
   inc r9
   mov rbx, 8
   mov r14, hex_alpha_lower
@@ -299,5 +317,7 @@ jmp_table:
                           dq fmt_octal
   times ('s' - 'o' - 1)   dq fmt_error
                           dq fmt_string
-  times ('x' - 's' - 1)   dq fmt_error
+  times ('u' - 's' - 1)   dq fmt_error
+                          dq fmt_unsign_decimal
+  times ('x' - 'u' - 1)   dq fmt_error
                           dq fmt_hex_l
