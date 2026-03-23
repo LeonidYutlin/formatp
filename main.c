@@ -2,7 +2,6 @@
 
 //TODO: %s and %B shouldnt always cause a buffer flush
 //TODO: windows version
-//TODO: do not call strlen instead use already known info abt the length of the buffer
 
 #define formatp(fmt, ...) fformatp(1, fmt __VA_OPT__(,) __VA_ARGS__)
 
@@ -16,8 +15,7 @@ void clear_buffer(char* buf) {
     *buf++ = '\0';
 }
 
-int main(void) {
-  
+int main(void) { 
   fformatp(2, "Hi i am formatted in stderr %B\n", true); 
   formatp("Hi %% I %cm a %% string\n", 'a');
   formatp("Chars, go! %c %c %c\n", 'A', 'p', 'D');

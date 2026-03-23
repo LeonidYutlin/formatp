@@ -10,7 +10,7 @@ formatp_buf: resb buf_sz
 section .text
 
 fformatp:
-  pop r15 ; save return address since we will iterate through stack
+  pop r15  ; save return address since we will iterate through stack
 
   push r9  ; push register args to stack so that all 
   push r8  ; args are on stack in order
@@ -67,20 +67,16 @@ handle_fmt_str:
       mov rbx, [jmp_table + (rax - 'b') * 8]
       jmp rbx
     fmt_str_return:
-      mov rdi, formatp_buf
-      call strlen ; call to a libc function
-
-      mov rdx, rax ; strlen return is now used as count
+      mov rdx, rdi
+      sub rdx, formatp_buf ; now rdx has count of written bytes
   	  mov rsi, formatp_buf
   	  call buf_flush
      ret
 
 fmt_bool:
   push rsi
-  mov rdi, formatp_buf
-  call strlen
-
-  mov rdx, rax
+  mov rdx, rdi
+  sub rdx, formatp_buf
   mov rsi, formatp_buf
   call buf_flush
 
@@ -99,8 +95,8 @@ fmt_bool:
   .false:
   mov rsi, false_str
   mov rdx, false_str_len
-  mov rdi, 0x1
-  mov rax, [rbp + 8]
+  mov rax, 0x1
+  mov rdi, [rbp + 8]
   syscall
   pop rsi
   mov rdi, formatp_buf
@@ -119,10 +115,8 @@ fmt_char:
 
 fmt_string:
   push rsi
-  mov rdi, formatp_buf
-  call strlen
-
-  mov rdx, rax
+  mov rdx, rdi
+  sub rdx, formatp_buf
   mov rsi, formatp_buf
   call buf_flush
 
@@ -193,16 +187,14 @@ fmt_error:
   push [rbp + 2 * 8]
   push rax
 
-  mov rdi, formatp_buf
-  call strlen 
-
-  mov rdx, rax 
+  mov rdx, rdi
+  sub rdx, formatp_buf
   mov rsi, formatp_buf
   call buf_flush
 
   mov rsi, fmt_error_str
   push rsi
-  push 2 ; push fd of stderr
+  push 2   ; push fd of stderr
   push rbp ; save rbp
   mov rbp, rsp
   call handle_fmt_str
