@@ -3,9 +3,10 @@
 //TODO: %s and %B shouldnt always cause a buffer flush
 //TODO: windows version
 
-#define formatp(fmt, ...) fformatp(1, fmt __VA_OPT__(,) __VA_ARGS__)
+#define formatp(fmt, ...) fformatp(stdout, fmt __VA_OPT__(,) __VA_ARGS__)
+#define fformatp(file, fmt, ...) fformatp_(fileno((file)), fmt __VA_OPT__(,) __VA_ARGS__)
 
-extern void fformatp(int fd, const char* fmt, ...)  /*__attribute__ ((format (printf, 2, 3)))*/;
+extern void fformatp_(int fd, const char* fmt, ...)  /*__attribute__ ((format (printf, 2, 3)))*/;
 
 //Example of a function that will be called 
 //from assembly to clear the buffer
@@ -16,7 +17,7 @@ void clear_buffer(char* buf) {
 }
 
 int main(void) { 
-  fformatp(2, "Hi i am formatted in stderr %B\n", true); 
+  fformatp(stderr, "Hi i am formatted in stderr %B\n", true); 
   formatp("Hi %% I %cm a %% string\n", 'a');
   formatp("Chars, go! %c %c %c\n", 'A', 'p', 'D');
   formatp("Boy oh boy what if i try to cause an error%Q\n");

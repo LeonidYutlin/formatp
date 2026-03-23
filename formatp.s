@@ -1,4 +1,4 @@
-global fformatp
+global fformatp_
 extern strlen
 extern clear_buffer
 
@@ -9,7 +9,7 @@ formatp_buf: resb buf_sz
 
 section .text
 
-fformatp:
+fformatp_:
   pop r15  ; save return address since we will iterate through stack
 
   push r9  ; push register args to stack so that all 
