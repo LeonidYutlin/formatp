@@ -232,7 +232,7 @@ buf_flush:
   mov rax, 0x1
   mov rdi, [rbp + 8] ; get fd we are currently working with
   syscall
-  mov rdi, formatp_buf
+  mov rdi, formatp_buf 
   call clear_buffer ; call to my own function in main.c
   ret
 
@@ -263,7 +263,11 @@ num2str:
   jz .exit
   mov byte al, [rsp]
   inc rsp
+  push rcx ; buf_append_ch will mutate rcx if it flushes, 
+           ; therefore we are gonna save it
+           ; this may be not the best solution but for now it works
   call buf_append_ch
+  pop rcx
   loop .unwind
 .exit:
   ret
