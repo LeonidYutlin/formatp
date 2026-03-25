@@ -25,17 +25,17 @@ an error to `stderr`, in a form of the following message:
 >     [ERROR]: Unrecognized escape sequence: '%...' in "%..."
 - Multiple specificators, all of them listed below:
 
-| Specificator | Mnemonic         | Expects    | Output |
-|--------------|------------------|------------|--------|
-| %c           | **C**haracter    | char       | single 8-bit character |
-| %s           | **S**tring       | char*      | "(null)" if the provided pointer is NULL, otherwise the string itself, not including the '\0' character |
-| %d\%ld       | **D**ecimal      | int\long   | 32\64-bit signed decimal |
-| %u\%lu       | **U**nsigned     | uint\ulong | 32\64-bit unsigned decimal |
-| %b\%lb       | **B**inary       | int\long   | 32\64-bit unsigned binary |
-| %o\%lo       | **O**ctal        | int\long   | 32\64-bit unsigned octal |
-| %x\%lx       | he**X**adecimal  | int\long   | 32\64-bit unsigned hexadecimal in lowercase |
-| %X\%lX       | he**X**adecimal  | int\long   | 32\64-bit unsigned hexadecimal in uppercase |
-| %B           | **B**oolean      | bool       | "false" if bool == 0, "true" otherwise |
+| Specificator | Mnemonic         | Expects      | Output |
+|--------------|------------------|--------------|--------|
+| %c           | **C**haracter    | `char`       | single 8-bit character |
+| %s           | **S**tring       | `char*`      | "(null)" if the provided pointer is NULL, otherwise the string itself, not including the '\0' character |
+| %d\%ld       | **D**ecimal      | `int\long`   | 32\64-bit signed decimal |
+| %u\%lu       | **U**nsigned     | `uint\ulong` | 32\64-bit unsigned decimal |
+| %b\%lb       | **B**inary       | `int\long`   | 32\64-bit unsigned binary |
+| %o\%lo       | **O**ctal        | `int\long`   | 32\64-bit unsigned octal |
+| %x\%lx       | he**X**adecimal  | `int\long`   | 32\64-bit unsigned hexadecimal in lowercase |
+| %X\%lX       | he**X**adecimal  | `int\long`   | 32\64-bit unsigned hexadecimal in uppercase |
+| %B           | **B**oolean      | `long`       | "false" if bool == 0, "true" otherwise |
 | %%           | -                | -          | percent character itself '%' |
 
 ### Notes
