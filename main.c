@@ -5,13 +5,9 @@
 //TODO: windows version
 //TODO: ensure calling conventions are enforced
 //TODO: maybe to convert into binary, octal or hexa you shouldnt use divs (triads, and quads instead)
-//TODO: MACROS for 'b', 8, 4, three lines together, fd of stderr (see chat)
 //TODO: commentary for some registers that we are using
 //TODO: factor out repeating code
 //TODO: create a README
-//TODO: maybe another way of preventing rcx corruption when calling clear_buffer
-//TODO: %ld, %lu
-//TODO: make sure to check the bounds of 32bit and 64bit versions of each %
 
 #define formatp(fmt, ...) \
   fformatp(stdout, fmt __VA_OPT__(,) __VA_ARGS__)
@@ -28,7 +24,27 @@ void clear_buffer(char* buf) {
     *buf++ = '\0';
 }
 
-int main(void) { 
+int main(void) {
+
+  formatp("Hi there is an error in this fmt str %r\n");
+  formatp("And here %lE too\n");
+
+  formatp("%ld is %lb\n", -4l, -4l);
+  formatp("%ld\nvs\n%d\n", ULONG_MAX, ULONG_MAX);
+  formatp("%ld\nvs\n%d\n", LONG_MIN, LONG_MIN);
+  formatp("%lu\nvs\n%u\n", LONG_MAX, LONG_MAX);
+  formatp("%lb\nvs\n%b\n", LONG_MAX, LONG_MAX);
+  formatp("%lo\nvs\n%o\n", LONG_MAX, LONG_MAX);
+  formatp("%lx\nvs\n%x\n", LONG_MAX, LONG_MAX);
+  formatp("%lu\nvs\n%u\n", LONG_MIN, LONG_MIN);
+
+  //printf("%lu\nvs\n%u\n", LONG_MIN, LONG_MIN);
+  //printf("%lb\nvs\n%b\n", LONG_MIN, LONG_MIN);
+  //printf("%lu\nvs\n%u\n", LONG_MAX, LONG_MAX);
+  //printf("%lb\nvs\n%b\n", LONG_MAX, LONG_MAX);
+  //printf("%lo\nvs\n%o\n", LONG_MAX, LONG_MAX);
+  //printf("%lx\nvs\n%x\n", LONG_MAX, LONG_MAX);
+
   fformatp(stderr, "Hi am I being formatted in stderr? %B\n", 1);
   formatp("Hi %% I %cm a %% string\n", 'a');
   formatp("Chars, go! %c %c %c\n", 'A', 'p', 'D');
@@ -60,14 +76,14 @@ int main(void) {
           "Wello Horld", 
           123,
           -1, "LOVE", 3802, 100, 33, 126);
-  printf("As a printf function i can do a lot:\n"
-         "\tchar - %c\n"
-         "\tstring - %s\n"
-         "\tdecimals - %d\n"
-         "%d %s %X %d%%%c%b\n",
-         'A', 
-         "Wello Horld", 
-         123,
-         -1, "LOVE", 3802, 100, 33, 126);
+  // printf("As a printf function i can do a lot:\n"
+  //        "\tchar - %c\n"
+  //        "\tstring - %s\n"
+  //        "\tdecimals - %d\n"
+  //        "%d %s %X %d%%%c%b\n",
+  //        'A', 
+  //        "Wello Horld", 
+  //        123,
+  //        -1, "LOVE", 3802, 100, 33, 126);
   return 0;
 }

@@ -2,10 +2,14 @@ global fformatp_
 extern strlen
 extern clear_buffer
 
-buf_sz equ 16
+; r12, r13, r14, r15, rbx, rsp, rbp are CALLEE-saved
+; rest are CALLER-saved
+
+BUF_SIZE equ 16
+REG_SIZE equ 8
 
 section .bss
-formatp_buf: resb buf_sz
+formatp_buf: resb BUF_SIZE
 
 section .text
 
@@ -36,14 +40,29 @@ fformatp_:
     push r15 ; push saved ret address onto the stack
     ret
 
+; stack starting from rbp looks like this
+; [0 - saved rbp][1 - fd arg][2 - fmt str arg][3+ fmt params]
+FD_ARG_INDEX         equ 1
+FMT_STR_ARG_INDEX    equ 2
+FMT_ARGS_START_INDEX equ 3
+
+%macro FD_WRITE 0 
+  mov rax, 0x1
+  mov rdi, [rbp + FD_ARG_INDEX * REG_SIZE] ; get fd we are currently working with
+  syscall
+%endmacro
+
+NULL_CHAR equ 0
+
 handle_fmt_str:
-  mov r9, 3 ; how many 8 offsets are we into the stack
+  ; r9 will store how many REG_SIZE sized shifts are we into processing the args
+  mov r9, FMT_ARGS_START_INDEX
   mov rdi, formatp_buf
   fmt_str_loop:
     mov al, [rsi]
     cmp al, '%'
     je .escape
-      cmp al, 0
+      cmp al, NULL_CHAR
       je fmt_str_return
       call buf_movsb
       jmp fmt_str_loop
@@ -53,18 +72,27 @@ handle_fmt_str:
       mov al, [rsi]
       inc rsi
 
+      xor cl, cl  ; cl is 0 (32 bit arg)
+      cmp al, 'l' ; 64 bit arg instead of 32
+      jne fmt_str_handle_fmt_char
+      .set_long_arg_flag:
+      inc cl      ; cl is now 1 (64 bit arg)
+      mov al, [rsi]
+      inc rsi
+
+      fmt_str_handle_fmt_char:
       cmp al, 'X' ; edge case no. 1
       je fmt_hex_u
       cmp al, 'B' ; edge case no. 2
       je fmt_bool 
       cmp al, '%' ; edge case no. 3
       je fmt_percent
-      cmp al, 'b' ; any below is def-tly an error
+      cmp al, JMP_TABLE_FIRST_CHAR ; any below is def-tly an error
       jb fmt_error
-      cmp al, 'x' ; any above is def-tly an error
+      cmp al, JMP_TABLE_LAST_CHAR  ; any above is def-tly an error
       ja fmt_error
         
-      mov rbx, [jmp_table + (rax - 'b') * 8]
+      mov rbx, [jmp_table + (rax - JMP_TABLE_FIRST_CHAR) * REG_SIZE]
       jmp rbx
     fmt_str_return:
       mov rdx, rdi
@@ -73,6 +101,32 @@ handle_fmt_str:
   	  call buf_flush
      ret
 
+; Loads arg (if cl = 0, loads eax, otherwise loads rax), and increments r9
+load_arg:
+  test cl, cl
+  jz .load_32
+  .load_64:
+  call load_64_arg
+  ret
+  .load_32:
+  call load_32_arg
+  ret
+
+load_32_arg:
+  mov eax, [rbp + r9 * REG_SIZE]
+  inc r9
+  ret 
+
+load_64_arg:
+  mov rax, [rbp + r9 * REG_SIZE]
+  inc r9
+  ret
+
+load_8_arg:
+  mov al,  [rbp + r9 * REG_SIZE]
+  inc r9
+  ret
+
 fmt_bool:
   push rsi
   mov rdx, rdi
@@ -80,25 +134,21 @@ fmt_bool:
   mov rsi, formatp_buf
   call buf_flush
 
-  mov rsi, [rbp + r9 * 8]
-  inc r9
+  call load_64_arg
+  mov rsi, rax
   test rsi, rsi
   jz .false
   .true:
   mov rsi, true_str
   mov rdx, true_str_len
-  mov rax, 0x1
-  mov rdi, [rbp + 8]
-  syscall
+  FD_WRITE
   pop rsi
   mov rdi, formatp_buf
   jmp fmt_str_loop
   .false:
   mov rsi, false_str
   mov rdx, false_str_len
-  mov rax, 0x1
-  mov rdi, [rbp + 8]
-  syscall
+  FD_WRITE
   pop rsi
   mov rdi, formatp_buf
   jmp fmt_str_loop
@@ -109,8 +159,7 @@ fmt_percent:
   jmp fmt_str_loop
 
 fmt_char:
-  mov al, [rbp + r9 * 8]
-  inc r9
+  call load_8_arg
   call buf_append_ch
   jmp fmt_str_loop
 
@@ -121,64 +170,73 @@ fmt_string:
   mov rsi, formatp_buf
   call buf_flush
 
-  mov rsi, [rbp + r9 * 8]
-  inc r9
+  call load_64_arg
+  mov rsi, rax
   test rsi, rsi
   jz .null
   .nonnull:
   mov rdi, rsi
   call strlen
-  mov rdx, rax
-  mov rax, 0x1
-  mov rdi, [rbp + 8]
-  syscall
+  mov rdx, rax 
+  FD_WRITE
   pop rsi
   mov rdi, formatp_buf
   jmp fmt_str_loop
   .null:
   mov rdx, null_str_len
   mov rsi, null_str
-  mov rdi, 0x1
-  mov rax, [rbp + 8]
-  syscall
+  FD_WRITE
   pop rsi
   mov rdi, formatp_buf
   jmp fmt_str_loop
 
 fmt_hex_u:
-  mov eax, [rbp + r9 * 8]
-  inc r9
+  call load_arg
   mov rbx, 16
   mov r14, hex_alpha_upper
   call num2str
   jmp fmt_str_loop
 
 fmt_hex_l:
-  mov eax, [rbp + r9 * 8]
-  inc r9
+  call load_arg
   mov rbx, 16
   mov r14, hex_alpha_lower
   call num2str
   jmp fmt_str_loop
 
 fmt_decimal:
-  mov eax, [rbp + r9 * 8]
-  inc r9
-  test eax, 0x80000000
-  jz fmt_decimal_common ; no need to handle minus
-  .handle_minus:
+  call load_arg
+  test cl, cl
+  jz  fmt_32_decimal
+  jmp fmt_64_decimal
+
+append_minus:
   push rax
   mov al, '-'
   call buf_append_ch
   pop rax
+  ret
+
+SIGN_BIT_MASK equ 0x80000000
+
+fmt_32_decimal:
+  test eax, SIGN_BIT_MASK
+  jz fmt_decimal_common
+  call append_minus
   not eax
   inc eax
   jmp fmt_decimal_common
- 
+
+fmt_64_decimal:
+  test rax, SIGN_BIT_MASK
+  jz fmt_decimal_common
+  call append_minus  
+  not rax
+  inc rax
+  jmp fmt_decimal_common
 
 fmt_unsign_decimal:
-  mov eax, [rbp + r9 * 8]
-  inc r9
+  call load_arg
   fmt_decimal_common:
   mov rbx, 10
   mov r14, hex_alpha_lower
@@ -186,38 +244,47 @@ fmt_unsign_decimal:
   jmp fmt_str_loop
 
 fmt_binary:
-  mov eax, [rbp + r9 * 8]
-  inc r9
+  call load_arg
   mov rbx, 2
   mov r14, hex_alpha_lower
   call num2str
   jmp fmt_str_loop
 
 fmt_octal:
-  mov eax, [rbp + r9 * 8]
-  inc r9
+  call load_arg
   mov rbx, 8
   mov r14, hex_alpha_lower
   call num2str
   jmp fmt_str_loop
 
-fmt_error:
-  push [rbp + 2 * 8]
-  push rax
+STDERR_FD equ 2
+FMT_ERROR_ARGC equ 4
 
+fmt_error:
+  push [rbp + FMT_STR_ARG_INDEX * REG_SIZE] ; fmt str we failed to parse will be %s
+  push rax ; push the char we failed to recognize as %c
+
+  push rcx
   mov rdx, rdi
   sub rdx, formatp_buf
   mov rsi, formatp_buf
   call buf_flush
+  pop rcx
 
-  mov rsi, fmt_error_str
+  test cl, cl
+  jz .error_32 ; there was no 'l' specificator before
+  mov rsi, fmt_error_str_64
+  jmp .error_str_loaded
+  .error_32:
+  mov rsi, fmt_error_str_32
+  .error_str_loaded:
   push rsi
-  push 2   ; push fd of stderr
-  push rbp ; save rbp
+  push STDERR_FD
+  push rbp
   mov rbp, rsp
   call handle_fmt_str
   pop rbp
-  add rsp, 8 * 4
+  add rsp, REG_SIZE * FMT_ERROR_ARGC
   jmp fmt_str_return
 
 buf_movsb:
@@ -230,7 +297,7 @@ buf_movsb:
 
 ; appends a character at AL to buffer. If buffer is full, flushes it
 buf_append_ch:
-  cmp rdi, formatp_buf + buf_sz
+  cmp rdi, formatp_buf + BUF_SIZE
   je .flush
   .store:
   stosb
@@ -239,7 +306,7 @@ buf_append_ch:
   push rax
   push rsi
   mov rsi, formatp_buf
-  mov rdx, buf_sz
+  mov rdx, BUF_SIZE
   call buf_flush
   pop rsi
   pop rax
@@ -247,10 +314,8 @@ buf_append_ch:
   jmp .store
 
 buf_flush:
-  mov rax, 0x1
-  mov rdi, [rbp + 8] ; get fd we are currently working with
-  syscall
-  mov rdi, formatp_buf 
+  FD_WRITE
+  mov rdi, formatp_buf
   call clear_buffer ; call to my own function in main.c
   ret
 
@@ -281,9 +346,7 @@ num2str:
   jz .exit
   mov byte al, [rsp]
   inc rsp
-  push rcx ; buf_append_ch will mutate rcx if it flushes, 
-           ; therefore we are gonna save it
-           ; this may be not the best solution but for now it works
+  push rcx
   call buf_append_ch
   pop rcx
   loop .unwind
@@ -307,7 +370,11 @@ false_str_len equ $ - false_str
 true_str: db "true"
 true_str_len equ $ - true_str
 
-fmt_error_str: db 0x0A, "[ERROR]: Unrecognized escape sequence: '%%%c' in ", 0x22, "%s", 0x22, 0x0A, 0
+fmt_error_str_64: db 0x0A, "[ERROR]: Unrecognized escape sequence: '%%l%c' in ", 0x22, "%s", 0x22, 0x0A, 0
+fmt_error_str_32: db 0x0A, "[ERROR]: Unrecognized escape sequence: '%%%c' in ", 0x22, "%s", 0x22, 0x0A, 0
+
+JMP_TABLE_FIRST_CHAR equ 'b'
+JMP_TABLE_LAST_CHAR  equ 'x'
 
 jmp_table:
                           dq fmt_binary
