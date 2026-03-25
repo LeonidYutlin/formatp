@@ -18,25 +18,39 @@ make run
 
 ## Capabilities
 - Formatted output to any valid file descriptor
-- The output is not immediate, but instead buffered to reduce number of write syscalls
+- The output is not immediate, but instead buffered to issue less write syscalls
+- `formatp` uses an internal jump table to reduce number of comparisons per percent processed
 - If the format string contains unknown `%` specificator, `formatp` uses itself to report
 an error to `stderr`, in a form of a following message:
-> [ERROR]: Unrecognized escape sequence: '%...' in "%..."
+>     [ERROR]: Unrecognized escape sequence: '%...' in "%..."
 - Multiple specificators, all of them listed below:
+
 | Specificator | Mnemonic         | Expects    | Output |
 |--------------|------------------|------------|--------|
 | %c           | **C**haracter    | char       | single 8-bit character |
-| %s           | **S**tring       | char*      | "(null)" if the provided string is NULL, otherwise the string itself, not including the '\0' character |
+| %s           | **S**tring       | char*      | "(null)" if the provided pointer is NULL, otherwise the string itself, not including the '\0' character |
 | %d\%ld       | **D**ecimal      | int\long   | 32\64-bit signed decimal |
 | %u\%lu       | **U**nsigned     | uint\ulong | 32\64-bit unsigned decimal |
-| %d\%ld       | **D**ecimal      | int\long   | 32\64-bit unsigned binary |
-| %d\%ld       | **D**ecimal      | int\long   | 32\64-bit unsigned octal |
-| %d\%ld       | **D**ecimal      | int\long   | 32\64-bit signed decimal |
-| %x\%lx       | he**X**adecimal  | int\long   | 32\64-bit unsigned hexadecimal |
+| %b\%lb       | **B**inary       | int\long   | 32\64-bit unsigned binary |
+| %o\%lo       | **O**ctal        | int\long   | 32\64-bit unsigned octal |
+| %x\%lx       | he**X**adecimal  | int\long   | 32\64-bit unsigned hexadecimal in lowercase |
+| %X\%lX       | he**X**adecimal  | int\long   | 32\64-bit unsigned hexadecimal in uppercase |
+| %B           | **B**oolean      | bool       | "false" if bool == 0, "true" otherwise |
+| %%           | -                | -          | percent character itself '%' |
+
+### Notes
+- `formatp` cannot check types of the arguments provided to it, so you may need to explicitly cast some arguments to their type.
+For example instead of `fformatp_(1, "Long: %ld", -4)` you should type `fformatp_(1, "Long: %ld", -4l)` to tell C that you explicitly want a 64-bit integer here.
+- `formatp` is not protected from number of arguments needed by `%` specificators exceeding the number of arguments provided to the function
+- You can add compiler-specific attributes to the prototype of `formatp` function, but that would also disable `formatp` exclusive specificators
+```c
+//for example, using gcc
+extern void fformatp_(int fd, const char* fmt, ...)  __attribute__ ((format (printf, 2, 3)));
+```
 
 ## Usage
 
-To use `formatp` in your code, you need to declare an external function in your C code.
+To use `formatp` in your code, you need to declare an external function prototype in your C code.
 `formatp` also references an external function `void clear_buffer(char* buf)` in its implementation, so you need to have such function implemented somewhere in your codebase
 
 ```c
