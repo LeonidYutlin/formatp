@@ -18,10 +18,10 @@ make run
 
 ## Capabilities
 - Formatted output to any valid file descriptor
-- The output is not immediate, but instead buffered to issue less write syscalls
-- `formatp` uses an internal jump table to reduce number of comparisons per percent processed
-- If the format string contains unknown `%` specificator, `formatp` uses itself to report
-an error to `stderr`, in a form of a following message:
+- The output is not immediate, but instead buffered in order to issue less write syscalls
+- `formatp` uses an internal jump table to reduce the number of comparisons per percent processed
+- If the format string contains an unknown `%` specificator, `formatp` uses itself to report
+an error to `stderr`, in a form of the following message:
 >     [ERROR]: Unrecognized escape sequence: '%...' in "%..."
 - Multiple specificators, all of them listed below:
 
@@ -41,7 +41,7 @@ an error to `stderr`, in a form of a following message:
 ### Notes
 - `formatp` cannot check types of the arguments provided to it, so you may need to explicitly cast some arguments to their type.
 For example instead of `fformatp_(1, "Long: %ld", -4)` you should type `fformatp_(1, "Long: %ld", -4l)` to tell C that you explicitly want a 64-bit integer here.
-- `formatp` is not protected from number of arguments needed by `%` specificators exceeding the number of arguments provided to the function
+- `formatp` is not protected from the number of arguments needed by `%` specificators exceeding the number of arguments provided to the function
 - You can add compiler-specific attributes to the prototype of `formatp` function, but that would also disable `formatp` exclusive specificators
 ```c
 //for example, using gcc
