@@ -28,16 +28,16 @@ an error to `stderr`, in a form of the following message:
 
 | Specificator | Mnemonic         | Expects      | Output |
 |--------------|------------------|--------------|--------|
-| %c           | **C**haracter    | `char`       | single 8-bit character |
-| %s           | **S**tring       | `char*`      | "(null)" if the provided pointer is NULL, otherwise the string itself, not including the '\0' character (causes a buffer flush before processing) |
-| %d\%ld       | **D**ecimal      | `int\long`   | 32\64-bit signed decimal |
-| %u\%lu       | **U**nsigned     | `uint\ulong` | 32\64-bit unsigned decimal |
-| %b\%lb       | **B**inary       | `int\long`   | 32\64-bit unsigned binary |
-| %o\%lo       | **O**ctal        | `int\long`   | 32\64-bit unsigned octal |
-| %x\%lx       | he**X**adecimal  | `int\long`   | 32\64-bit unsigned hexadecimal in lowercase |
-| %X\%lX       | he**X**adecimal  | `int\long`   | 32\64-bit unsigned hexadecimal in uppercase |
-| %B           | **B**oolean      | `long`       | "false" if bool == 0, "true" otherwise |
-| %%           | -                | -          | percent character itself '%' |
+| `%c`           | **C**haracter    | `char`       | single 8-bit character |
+| `%s`           | **S**tring       | `char*`      | "(null)" if the provided pointer is NULL, otherwise the string itself, not including the '\0' character (causes a buffer flush before processing) |
+| `%d\%ld`       | **D**ecimal      | `int\long`   | 32\64-bit signed decimal |
+| `%u\%lu`       | **U**nsigned     | `uint\ulong` | 32\64-bit unsigned decimal |
+| `%b\%lb`       | **B**inary       | `int\long`   | 32\64-bit unsigned binary |
+| `%o\%lo`       | **O**ctal        | `int\long`   | 32\64-bit unsigned octal |
+| `%x\%lx`       | he**X**adecimal  | `int\long`   | 32\64-bit unsigned hexadecimal in lowercase |
+| `%X\%lX`       | he**X**adecimal  | `int\long`   | 32\64-bit unsigned hexadecimal in uppercase |
+| `%B`           | **B**oolean      | `long`       | "false" if bool == 0, "true" otherwise |
+| `%%`           | -                | -          | percent character itself '%' |
 
 ### Notes
 - `formatp` cannot check types of the arguments provided to it, so you may need to explicitly cast some arguments to their type.

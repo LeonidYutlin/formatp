@@ -110,7 +110,7 @@ ensure_no_64_prefix:
   test cl, cl
   jz .no_error
   .error:
-  add rsp, 1 * REG_SIZE
+  add rsp, 1 * REG_SIZE ; pop the ret addr since we wont use it
   jmp fmt_error
   .no_error:
   ret
