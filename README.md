@@ -29,7 +29,6 @@ an error to `stderr`, in a form of the following message:
 | Specificator | Mnemonic         | Expects      | Output |
 |--------------|------------------|--------------|--------|
 | %c           | **C**haracter    | `char`       | single 8-bit character |
-
 | %s           | **S**tring       | `char*`      | "(null)" if the provided pointer is NULL, otherwise the string itself, not including the '\0' character (causes a buffer flush before processing) |
 | %d\%ld       | **D**ecimal      | `int\long`   | 32\64-bit signed decimal |
 | %u\%lu       | **U**nsigned     | `uint\ulong` | 32\64-bit unsigned decimal |
