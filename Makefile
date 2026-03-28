@@ -6,11 +6,8 @@ all: ensure_directories_exist $(BINARY_PATH)/formatp
 run: all
 	./$(BINARY_PATH)/formatp
 
-$(BINARY_PATH)/formatp: $(ARTIFACT_PATH)/main.o	$(ARTIFACT_PATH)/formatp.o
-	gcc -no-pie $^ -o $@ -lc
-
-$(ARTIFACT_PATH)/main.o: main.c
-	gcc -c -Wall -Wextra $< -o $@ -lc 
+$(BINARY_PATH)/formatp:	main.c $(ARTIFACT_PATH)/formatp.o
+	gcc -Wall -Wextra $^ -o $@ -lc
 
 $(ARTIFACT_PATH)/formatp.o: formatp.s
 	nasm -f elf64 -l $(ARTIFACT_PATH)/formatp.lst $< -o $@

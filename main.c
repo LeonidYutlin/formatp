@@ -7,7 +7,6 @@
 //TODO: maybe to convert into binary, octal or hexa you shouldnt use divs (triads, and quads instead)
 //TODO: commentary for some registers that we are using
 //TODO: factor out repeating code
-//TODO: create a README
 
 #define formatp(fmt, ...) \
   fformatp(stdout, fmt __VA_OPT__(,) __VA_ARGS__)

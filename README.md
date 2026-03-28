@@ -20,6 +20,7 @@ make run
 - Formatted output to any valid file descriptor
 - The output is not immediate, but instead buffered in order to issue less write syscalls
 - `formatp` uses an internal jump table to reduce the number of comparisons per percent processed
+- In UNIX-like systems, the assembly bindings are PIE-compliant, ensuring your program is less vulnerable to hack attempts
 - If the format string contains an unknown `%` specificator, `formatp` uses itself to report
 an error to `stderr`, in a form of the following message:
 >     [ERROR]: Unrecognized escape sequence: '%...' in "%..."
@@ -28,7 +29,8 @@ an error to `stderr`, in a form of the following message:
 | Specificator | Mnemonic         | Expects      | Output |
 |--------------|------------------|--------------|--------|
 | %c           | **C**haracter    | `char`       | single 8-bit character |
-| %s           | **S**tring       | `char*`      | "(null)" if the provided pointer is NULL, otherwise the string itself, not including the '\0' character |
+
+| %s           | **S**tring       | `char*`      | "(null)" if the provided pointer is NULL, otherwise the string itself, not including the '\0' character (causes a buffer flush before processing) |
 | %d\%ld       | **D**ecimal      | `int\long`   | 32\64-bit signed decimal |
 | %u\%lu       | **U**nsigned     | `uint\ulong` | 32\64-bit unsigned decimal |
 | %b\%lb       | **B**inary       | `int\long`   | 32\64-bit unsigned binary |

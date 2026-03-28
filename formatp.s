@@ -1,3 +1,5 @@
+default rel
+
 global fformatp_
 extern strlen
 extern clear_buffer
@@ -56,48 +58,54 @@ NULL_CHAR equ 0
 
 handle_fmt_str:
   ; r9 will store how many REG_SIZE sized shifts are we into processing the args
-  mov r9, FMT_ARGS_START_INDEX
-  mov rdi, formatp_buf
+  mov r9,  FMT_ARGS_START_INDEX
+  lea rdi, [formatp_buf]
   fmt_str_loop:
-    mov al, [rsi]
-    cmp al, '%'
-    je .escape
-      cmp al, NULL_CHAR
-      je fmt_str_return
-      call buf_movsb
-      jmp fmt_str_loop
-    .escape:
-      inc rsi
-      xor rax, rax
-      mov al, [rsi]
-      inc rsi
-
-      xor cl, cl  ; cl is 0 (32 bit arg)
-      cmp al, 'l' ; 64 bit arg instead of 32
-      jne fmt_str_handle_fmt_char
-      .set_long_arg_flag:
-      inc cl      ; cl is now 1 (64 bit arg)
-      mov al, [rsi]
-      inc rsi
-
-      fmt_str_handle_fmt_char:
-      cmp al, 'X' ; edge case no. 1
-      je fmt_hex_u
-      cmp al, 'B' ; edge case no. 2
-      je fmt_bool 
-      cmp al, '%' ; edge case no. 3
-      je fmt_percent
-      cmp al, JMP_TABLE_FIRST_CHAR ; any below is def-tly an error
-      jb fmt_error
-      cmp al, JMP_TABLE_LAST_CHAR  ; any above is def-tly an error
-      ja fmt_error
-        
-      mov rbx, [jmp_table + (rax - JMP_TABLE_FIRST_CHAR) * REG_SIZE]
-      jmp rbx
+     mov al, [rsi] ; lodsb
+     cmp al, '%'
+     je .escape
+       cmp al, NULL_CHAR
+       je fmt_str_return
+       call buf_movsb
+       jmp fmt_str_loop
+     .escape:
+       inc rsi
+       xor rax, rax
+       mov al, [rsi]
+       inc rsi
+    
+       xor cl, cl  ; cl is 0 (32 bit arg)
+       cmp al, 'l' ; 64 bit arg instead of 32
+       jne fmt_str_handle_fmt_char
+       .set_long_arg_flag:
+       inc cl      ; cl is now 1 (64 bit arg)
+       mov al, [rsi]
+       inc rsi
+  
+       fmt_str_handle_fmt_char:
+       cmp al, 'X' ; edge case no. 1
+       je fmt_hex_u
+       cmp al, 'B' ; edge case no. 2
+       je fmt_bool 
+       cmp al, '%' ; edge case no. 3
+       je fmt_percent
+       cmp al, JMP_TABLE_FIRST_CHAR ; any below is def-tly an error
+       jb fmt_error
+       cmp al, JMP_TABLE_LAST_CHAR  ; any above is def-tly an error
+       ja fmt_error
+       
+       lea rbx, [jmp_table]
+       push rcx
+       ; move with sign extension
+       movsx rcx, dword [rbx + (rax - JMP_TABLE_FIRST_CHAR) * REG_SIZE]
+       ; add [jmp_table] so that we compensate the relativeness of jmp_table's contents
+       add rbx, rcx
+       pop rcx
+       jmp rbx
     fmt_str_return:
       mov rdx, rdi
-      sub rdx, formatp_buf ; now rdx has count of written bytes
-  	  mov rsi, formatp_buf
+  	  lea rsi, [formatp_buf]
+      sub rdx, rsi
   	  call buf_flush
      ret
 
@@ -130,8 +138,8 @@ load_8_arg:
 fmt_bool:
   push rsi
   mov rdx, rdi
-  sub rdx, formatp_buf
-  mov rsi, formatp_buf
+  lea rsi, [formatp_buf]
+  sub rdx, rsi
   call buf_flush
 
   call load_64_arg
@@ -139,18 +147,18 @@ fmt_bool:
   test rsi, rsi
   jz .false
   .true:
-  mov rsi, true_str
+  lea rsi, [true_str]
   mov rdx, true_str_len
   FD_WRITE
   pop rsi
-  mov rdi, formatp_buf
+  lea rdi, [formatp_buf]
   jmp fmt_str_loop
   .false:
-  mov rsi, false_str
+  lea rsi, [false_str]
   mov rdx, false_str_len
   FD_WRITE
   pop rsi
-  mov rdi, formatp_buf
+  lea rdi, [formatp_buf]
   jmp fmt_str_loop
 
 fmt_percent:
@@ -166,8 +174,8 @@ fmt_char:
 fmt_string:
   push rsi
   mov rdx, rdi
-  sub rdx, formatp_buf
-  mov rsi, formatp_buf
+  lea rsi, [formatp_buf]
+  sub rdx, rsi
   call buf_flush
 
   call load_64_arg
@@ -176,31 +184,31 @@ fmt_string:
   jz .null
   .nonnull:
   mov rdi, rsi
-  call strlen
+  call strlen wrt ..plt
   mov rdx, rax 
   FD_WRITE
   pop rsi
-  mov rdi, formatp_buf
+  lea rdi, [formatp_buf]
   jmp fmt_str_loop
   .null:
   mov rdx, null_str_len
-  mov rsi, null_str
+  lea rsi, [null_str]
   FD_WRITE
   pop rsi
-  mov rdi, formatp_buf
+  lea rdi, [formatp_buf]
   jmp fmt_str_loop
 
-fmt_hex_u:
+  fmt_hex_u:
   call load_arg
   mov rbx, 16
-  mov r14, hex_alpha_upper
+  lea r14, [hex_alpha_upper]
   call num2str
   jmp fmt_str_loop
 
 fmt_hex_l:
   call load_arg
   mov rbx, 16
-  mov r14, hex_alpha_lower
+  lea r14, [hex_alpha_lower]
   call num2str
   jmp fmt_str_loop
 
@@ -234,29 +242,29 @@ fmt_64_decimal:
   not rax
   inc rax
   jmp fmt_decimal_common
-
+  
 fmt_unsign_decimal:
   call load_arg
   fmt_decimal_common:
   mov rbx, 10
-  mov r14, hex_alpha_lower
+  lea r14, [hex_alpha_lower]
   call num2str
   jmp fmt_str_loop
 
 fmt_binary:
   call load_arg
   mov rbx, 2
-  mov r14, hex_alpha_lower
+  lea r14, [hex_alpha_lower]
   call num2str
   jmp fmt_str_loop
-
+  
 fmt_octal:
   call load_arg
   mov rbx, 8
-  mov r14, hex_alpha_lower
+  lea r14, [hex_alpha_lower]
   call num2str
   jmp fmt_str_loop
-
+  
 STDERR_FD equ 2
 FMT_ERROR_ARGC equ 4
 
@@ -266,17 +274,17 @@ fmt_error:
 
   push rcx
   mov rdx, rdi
-  sub rdx, formatp_buf
-  mov rsi, formatp_buf
+  lea rsi, [formatp_buf]
+  sub rdx, rsi
   call buf_flush
   pop rcx
-
+  
   test cl, cl
   jz .error_32 ; there was no 'l' specificator before
-  mov rsi, fmt_error_str_64
+  lea rsi, [fmt_error_str_64]
   jmp .error_str_loaded
   .error_32:
-  mov rsi, fmt_error_str_32
+  lea rsi, [fmt_error_str_32]
   .error_str_loaded:
   push rsi
   push STDERR_FD
@@ -297,7 +305,8 @@ buf_movsb:
 
 ; appends a character at AL to buffer. If buffer is full, flushes it
 buf_append_ch:
-  cmp rdi, formatp_buf + BUF_SIZE
+  lea r12, [formatp_buf + BUF_SIZE]
+  cmp rdi, r12
   je .flush
   .store:
   stosb
@@ -305,17 +314,17 @@ buf_append_ch:
   .flush:
   push rax
   push rsi
-  mov rsi, formatp_buf
+  lea rsi, [formatp_buf]
   mov rdx, BUF_SIZE
   call buf_flush
   pop rsi
   pop rax
-  mov rdi, formatp_buf
+  lea rdi, [formatp_buf]
   jmp .store
 
 buf_flush:
   FD_WRITE
-  mov rdi, formatp_buf
+  lea rdi, [formatp_buf]
   call clear_buffer ; call to my own function in main.c
   ret
 
@@ -357,7 +366,7 @@ num2str:
   call buf_append_ch
   ret
 
-section .data
+section .rodata
 
 hex_alpha_lower: db "0123456789abcdef"
 hex_alpha_upper: db "0123456789ABCDEF"
@@ -377,14 +386,14 @@ JMP_TABLE_FIRST_CHAR equ 'b'
 JMP_TABLE_LAST_CHAR  equ 'x'
 
 jmp_table:
-                          dq fmt_binary
-                          dq fmt_char
-                          dq fmt_decimal
-  times ('o' - 'd' - 1)   dq fmt_error
-                          dq fmt_octal
-  times ('s' - 'o' - 1)   dq fmt_error
-                          dq fmt_string
-  times ('u' - 's' - 1)   dq fmt_error
-                          dq fmt_unsign_decimal
-  times ('x' - 'u' - 1)   dq fmt_error
-                          dq fmt_hex_l
+                          dq fmt_binary         - jmp_table
+                          dq fmt_char           - jmp_table
+                          dq fmt_decimal        - jmp_table
+  times ('o' - 'd' - 1)   dq fmt_error          - jmp_table
+                          dq fmt_octal          - jmp_table
+  times ('s' - 'o' - 1)   dq fmt_error          - jmp_table
+                          dq fmt_string         - jmp_table
+  times ('u' - 's' - 1)   dq fmt_error          - jmp_table
+                          dq fmt_unsign_decimal - jmp_table
+  times ('x' - 'u' - 1)   dq fmt_error          - jmp_table
+                          dq fmt_hex_l          - jmp_table
