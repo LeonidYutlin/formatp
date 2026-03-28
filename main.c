@@ -25,7 +25,8 @@ void clear_buffer(char* buf) {
 
 int main(void) {
 
-  formatp("Hi there is an error in this fmt str %r\n");
+  formatp("What if i try to use l where im not supposed to? %lB", true);
+  formatp("Hi there is an error in this fmt str %r%t\n");
   formatp("And here %lE too\n");
 
   formatp("%ld is %lb\n", -4l, -4l);

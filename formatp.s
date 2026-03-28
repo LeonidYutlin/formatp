@@ -7,7 +7,7 @@ extern clear_buffer
 ; r12, r13, r14, r15, rbx, rsp, rbp are CALLEE-saved
 ; rest are CALLER-saved
 
-BUF_SIZE equ 16
+BUF_SIZE equ 64
 REG_SIZE equ 8
 
 section .bss
@@ -61,26 +61,23 @@ handle_fmt_str:
   mov r9,  FMT_ARGS_START_INDEX
   lea rdi, [formatp_buf]
   fmt_str_loop:
-     mov al, [rsi] ; lodsb
+     lodsb
      cmp al, '%'
      je .escape
        cmp al, NULL_CHAR
        je fmt_str_return
-       call buf_movsb
+       call buf_append_ch
        jmp fmt_str_loop
      .escape:
-       inc rsi
-       xor rax, rax
-       mov al, [rsi]
-       inc rsi
+       xor eax, eax
+       lodsb
     
        xor cl, cl  ; cl is 0 (32 bit arg)
        cmp al, 'l' ; 64 bit arg instead of 32
        jne fmt_str_handle_fmt_char
        .set_long_arg_flag:
        inc cl      ; cl is now 1 (64 bit arg)
-       mov al, [rsi]
-       inc rsi
+       lodsb
   
        fmt_str_handle_fmt_char:
        cmp al, 'X' ; edge case no. 1
@@ -102,12 +99,21 @@ handle_fmt_str:
        add rbx, rcx
        pop rcx
        jmp rbx
-    fmt_str_return:
-      mov rdx, rdi
-  	  lea rsi, [formatp_buf]
-      sub rdx, rsi
-  	  call buf_flush
-     ret
+  fmt_str_return:
+    mov rdx, rdi
+  	lea rsi, [formatp_buf]
+    sub rdx, rsi
+  	call buf_flush
+    ret
+
+ensure_no_64_prefix:
+  test cl, cl
+  jz .no_error
+  .error:
+  add rsp, 1 * REG_SIZE
+  jmp fmt_error
+  .no_error:
+  ret
 
 ; Loads arg (if cl = 0, loads eax, otherwise loads rax), and increments r9
 load_arg:
@@ -136,6 +142,7 @@ load_8_arg:
   ret
 
 fmt_bool:
+  call ensure_no_64_prefix
   push rsi
   mov rdx, rdi
   lea rsi, [formatp_buf]
@@ -162,16 +169,19 @@ fmt_bool:
   jmp fmt_str_loop
 
 fmt_percent:
+  call ensure_no_64_prefix
   mov al, '%'
   call buf_append_ch 
   jmp fmt_str_loop
 
 fmt_char:
+  call ensure_no_64_prefix
   call load_8_arg
   call buf_append_ch
   jmp fmt_str_loop
 
 fmt_string:
+  call ensure_no_64_prefix
   push rsi
   mov rdx, rdi
   lea rsi, [formatp_buf]
@@ -198,17 +208,17 @@ fmt_string:
   lea rdi, [formatp_buf]
   jmp fmt_str_loop
 
-  fmt_hex_u:
+fmt_hex_u:
   call load_arg
   mov rbx, 16
-  lea r14, [hex_alpha_upper]
+  lea r14, [alpha_upper]
   call num2str
   jmp fmt_str_loop
 
 fmt_hex_l:
   call load_arg
   mov rbx, 16
-  lea r14, [hex_alpha_lower]
+  lea r14, [alpha_lower]
   call num2str
   jmp fmt_str_loop
 
@@ -247,21 +257,21 @@ fmt_unsign_decimal:
   call load_arg
   fmt_decimal_common:
   mov rbx, 10
-  lea r14, [hex_alpha_lower]
+  lea r14, [alpha_lower]
   call num2str
   jmp fmt_str_loop
 
 fmt_binary:
   call load_arg
   mov rbx, 2
-  lea r14, [hex_alpha_lower]
+  lea r14, [alpha_lower]
   call num2str
   jmp fmt_str_loop
   
 fmt_octal:
   call load_arg
   mov rbx, 8
-  lea r14, [hex_alpha_lower]
+  lea r14, [alpha_lower]
   call num2str
   jmp fmt_str_loop
   
@@ -294,14 +304,6 @@ fmt_error:
   pop rbp
   add rsp, REG_SIZE * FMT_ERROR_ARGC
   jmp fmt_str_return
-
-buf_movsb:
-  ;push rax
-  mov al, [rsi]
-  call buf_append_ch
-  inc rsi
-  ;pop rax
-  ret 
 
 ; appends a character at AL to buffer. If buffer is full, flushes it
 buf_append_ch:
@@ -368,8 +370,8 @@ num2str:
 
 section .rodata
 
-hex_alpha_lower: db "0123456789abcdef"
-hex_alpha_upper: db "0123456789ABCDEF"
+alpha_lower: db "0123456789abcdef"
+alpha_upper: db "0123456789ABCDEF"
 
 null_str: db "(null)"
 null_str_len equ $ - null_str
