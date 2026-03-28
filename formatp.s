@@ -103,41 +103,6 @@ handle_fmt_str:
   	call buf_force_flush
     ret
 
-ensure_no_64_prefix:
-  test cl, cl
-  jz .no_error
-  .error:
-  add rsp, 1 * REG_SIZE ; pop the ret addr since we wont use it
-  jmp fmt_error
-  .no_error:
-  ret
-
-; Loads arg (if cl = 0, loads eax, otherwise loads rax), and increments r9
-load_arg:
-  test cl, cl
-  jz .load_32
-  .load_64:
-  call load_64_arg
-  ret
-  .load_32:
-  call load_32_arg
-  ret
-
-load_32_arg:
-  mov eax, [rbp + r9 * REG_SIZE]
-  inc r9
-  ret 
-
-load_64_arg:
-  mov rax, [rbp + r9 * REG_SIZE]
-  inc r9
-  ret
-
-load_8_arg:
-  mov al,  [rbp + r9 * REG_SIZE]
-  inc r9
-  ret
-
 fmt_bool:
   call ensure_no_64_prefix
   call load_64_arg
@@ -215,13 +180,6 @@ fmt_decimal:
   jz  fmt_32_decimal
   jmp fmt_64_decimal
 
-append_minus:
-  push rax
-  mov al, '-'
-  call buf_append_ch
-  pop rax
-  ret
-
 SIGN_BIT_MASK equ 0x80000000
 
 fmt_32_decimal:
@@ -289,6 +247,41 @@ fmt_error:
   add rsp, REG_SIZE * FMT_ERROR_ARGC
   jmp fmt_str_return
 
+ensure_no_64_prefix:
+  test cl, cl
+  jz .no_error
+  .error:
+  add rsp, 1 * REG_SIZE ; pop the ret addr since we wont use it
+  jmp fmt_error
+  .no_error:
+  ret
+
+; Loads arg (if cl = 0, loads eax, otherwise loads rax), and increments r9
+load_arg:
+  test cl, cl
+  jz .load_32
+  .load_64:
+  call load_64_arg
+  ret
+  .load_32:
+  call load_32_arg
+  ret
+
+load_32_arg:
+  mov eax, [rbp + r9 * REG_SIZE]
+  inc r9
+  ret 
+
+load_64_arg:
+  mov rax, [rbp + r9 * REG_SIZE]
+  inc r9
+  ret
+
+load_8_arg:
+  mov al,  [rbp + r9 * REG_SIZE]
+  inc r9
+  ret
+
 ; appends a character at AL to buffer. If buffer is full, flushes it
 buf_append_ch:
   lea r12, [formatp_buf + BUF_SIZE]
@@ -318,6 +311,13 @@ buf_flush:
   FD_WRITE
   lea rdi, [formatp_buf]
   call clear_buffer ; call to my own function in main.c
+  ret
+
+append_minus:
+  push rax
+  mov al, '-'
+  call buf_append_ch
+  pop rax
   ret
 
 ;--------------

@@ -5,8 +5,6 @@
 //TODO: windows version
 //TODO: ensure calling conventions are enforced
 //TODO: maybe to convert into binary, octal or hexa you shouldnt use divs (triads, and quads instead)
-//TODO: commentary for some registers that we are using
-//TODO: factor out repeating code
 
 int main(void) {
 
