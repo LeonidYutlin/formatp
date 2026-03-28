@@ -100,10 +100,7 @@ handle_fmt_str:
        pop rcx
        jmp rbx
   fmt_str_return:
-    mov rdx, rdi
-  	lea rsi, [formatp_buf]
-    sub rdx, rsi
-  	call buf_flush
+  	call buf_force_flush
     ret
 
 ensure_no_64_prefix:
@@ -176,10 +173,7 @@ fmt_char:
 fmt_string:
   call ensure_no_64_prefix
   push rsi
-  mov rdx, rdi
-  lea rsi, [formatp_buf]
-  sub rdx, rsi
-  call buf_flush
+  call buf_force_flush
 
   call load_64_arg
   mov rsi, rax
@@ -276,10 +270,7 @@ fmt_error:
   push rax ; push the char we failed to recognize as %c
 
   push rcx
-  mov rdx, rdi
-  lea rsi, [formatp_buf]
-  sub rdx, rsi
-  call buf_flush
+  call buf_force_flush
   pop rcx
   
   test cl, cl
@@ -316,6 +307,12 @@ buf_append_ch:
   pop rax
   lea rdi, [formatp_buf]
   jmp .store
+
+buf_force_flush:
+  mov rdx, rdi
+  lea rsi, [formatp_buf]
+  sub rdx, rsi
+  call buf_flush
 
 buf_flush:
   FD_WRITE
