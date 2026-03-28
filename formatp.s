@@ -161,7 +161,6 @@ fmt_bool:
   pop rsi
   jmp fmt_str_loop
 
-
 fmt_percent:
   call ensure_no_64_prefix
   mov al, '%'

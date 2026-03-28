@@ -65,6 +65,8 @@ int main(void) {
 }
 ```
 
+Or you can use `formatp.h`, which has these provided for you, including some additional macros
+
 ### Additional Macros
 
 You can also add some macros to ease the use of `formatp`
