@@ -143,30 +143,24 @@ load_8_arg:
 
 fmt_bool:
   call ensure_no_64_prefix
-  push rsi
-  mov rdx, rdi
-  lea rsi, [formatp_buf]
-  sub rdx, rsi
-  call buf_flush
-
   call load_64_arg
-  mov rsi, rax
-  test rsi, rsi
+  push rsi
+  test rax, rax
   jz .false
   .true:
+  mov rcx, true_str_len
   lea rsi, [true_str]
-  mov rdx, true_str_len
-  FD_WRITE
-  pop rsi
-  lea rdi, [formatp_buf]
-  jmp fmt_str_loop
+  jmp .loop
   .false:
+  mov rcx, false_str_len
   lea rsi, [false_str]
-  mov rdx, false_str_len
-  FD_WRITE
+  .loop:
+    lodsb
+    call buf_append_ch
+    loop .loop
   pop rsi
-  lea rdi, [formatp_buf]
   jmp fmt_str_loop
+
 
 fmt_percent:
   call ensure_no_64_prefix

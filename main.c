@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <limits.h>
 
-//TODO: %s and %B shouldnt always cause a buffer flush
 //TODO: windows version
 //TODO: ensure calling conventions are enforced
 //TODO: maybe to convert into binary, octal or hexa you shouldnt use divs (triads, and quads instead)
