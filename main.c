@@ -2,7 +2,6 @@
 #include "formatp.h"
 
 //TODO: windows version
-//TODO: ensure calling conventions are enforced
 
 int main(void) {
 

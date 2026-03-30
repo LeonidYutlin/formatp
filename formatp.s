@@ -15,8 +15,10 @@ formatp_buf: resb BUF_SIZE
 
 section .text
 
+REG_ARGC equ 6
+
 fformatp_:
-  pop r15  ; save return address since we will iterate through stack
+  pop r10  ; save return address since we will iterate through stack
 
   push r9  ; push register args to stack so that all 
   push r8  ; args are on stack in order
@@ -27,19 +29,24 @@ fformatp_:
 
   push rbp ; save rbp
   mov rbp, rsp
+  push r10
+  push rbx
   call handle_fmt_str
  
   .return:
+    pop rbx
+    pop r10
     pop rbp
 
-    pop rdi
-    pop rsi
-    pop rdx
-    pop rcx 
-    pop r8
-    pop r9
+    add rsp, REG_ARGC * REG_SIZE
+    ;pop rdi
+    ;pop rsi
+    ;pop rdx
+    ;pop rcx 
+    ;pop r8
+    ;pop r9
 
-    push r15 ; push saved ret address onto the stack
+    push r10 ; push saved ret address onto the stack
     ret
 
 ; stack starting from rbp looks like this
@@ -202,7 +209,7 @@ fmt_unsign_decimal:
   call load_arg
   fmt_decimal_common:
   mov rbx, 10
-  lea r14, [alpha_lower]
+  lea r10, [alpha_lower]
   call num2str
   jmp fmt_str_loop
 
@@ -271,7 +278,7 @@ load_arg:
 load_32_arg:
   mov eax, [rbp + r9 * REG_SIZE]
   inc r9
-  ret 
+  ret
 
 load_64_arg:
   mov rax, [rbp + r9 * REG_SIZE]
@@ -285,8 +292,8 @@ load_8_arg:
 
 ; appends a character at AL to buffer. If buffer is full, flushes it
 buf_append_ch:
-  lea r12, [formatp_buf + BUF_SIZE]
-  cmp rdi, r12
+  lea r10, [formatp_buf + BUF_SIZE]
+  cmp rdi, r10
   je .flush
   .store:
   stosb
@@ -345,13 +352,13 @@ clear_buf:
   test rax, rax
   jz num_zero
   xor rcx, rcx
-  lea r14, [%4]
+  lea r10, [%4]
   .windup:
 	  test rax, rax
 	  jz num_unwind
 	  mov rdx, rax
     and rdx, %2
-    mov dl, [r14 + rdx]
+    mov dl, [r10 + rdx]
     dec rsp
     mov byte [rsp], dl
 	  shr rax, %3
@@ -385,7 +392,7 @@ power_of_2_radix_to_str_func hex2str_u, HEX_MASK, HEX_SHIFT, alpha_upper
 ; num2str - converts number to string of bytes (uses stack to reverse the order)
 ; Input:  rax    = number to convert
 ;         rbx    = radix
-;         r14 -> alphabet string
+;         r10 -> alphabet string
 ;         rdi -> destination to convert into
 ; Destr:  rax, rdi, rdx, rcx 
 ;--------------
@@ -398,7 +405,7 @@ num2str:
 	  jz num_unwind
 	  xor rdx, rdx
 	  div rbx ; rax = rax / rbx, rdx = rax % rbx
-    mov dl, [r14 + rdx]
+    mov dl, [r10 + rdx]
     dec rsp
     mov byte [rsp], dl
     inc rcx
@@ -448,11 +455,11 @@ jmp_table:
                           dq fmt_decimal        - jmp_table
   times ('o' - 'd' - 1)   dq fmt_error          - jmp_table
                           dq fmt_octal          - jmp_table
-  times ('q' - 'o' - 1)   dq fmt_error          - jmp_table ; which is just p
+  times ('q' - 'o' - 1)   dq fmt_error          - jmp_table ; p
                           dq fmt_quat           - jmp_table
-  times ('s' - 'q' - 1)   dq fmt_error          - jmp_table ; which is just r
+  times ('s' - 'q' - 1)   dq fmt_error          - jmp_table ; r
                           dq fmt_string         - jmp_table
-  times ('u' - 's' - 1)   dq fmt_error          - jmp_table
+  times ('u' - 's' - 1)   dq fmt_error          - jmp_table ; t
                           dq fmt_unsign_decimal - jmp_table
   times ('x' - 'u' - 1)   dq fmt_error          - jmp_table
                           dq fmt_hex_l          - jmp_table
