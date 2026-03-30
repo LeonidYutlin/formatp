@@ -327,86 +327,45 @@ clear_buf:
   call memset wrt ..plt
   ret
 
-BINARY_MASK  equ 1
-BINARY_SHIFT equ 1
+%macro power_of_2_radix_to_str_func 3
+  power_of_2_radix_to_str_func %1, %2, %3, alpha
+%endmacro
 
-bin2str:
+%macro power_of_2_radix_to_str_func 4
+ %1:
   test rax, rax
   jz num_zero
   xor rcx, rcx
-  lea r14, [alpha]
-.windup:
-	test rax, rax
-	jz num_unwind
-	mov rdx, rax
-  and rdx, BINARY_MASK
-  mov dl, [r14 + rdx]
-  dec rsp
-  mov byte [rsp], dl
-	shr rax, BINARY_SHIFT
-  inc rcx
-  jmp .windup
-jmp num_unwind
+  lea r14, [%4]
+  .windup:
+	  test rax, rax
+	  jz num_unwind
+	  mov rdx, rax
+    and rdx, %2
+    mov dl, [r14 + rdx]
+    dec rsp
+    mov byte [rsp], dl
+	  shr rax, %3
+    inc rcx
+    jmp .windup
+  jmp num_unwind 
+%endmacro
+
+BINARY_MASK  equ 1
+BINARY_SHIFT equ 1
+
+power_of_2_radix_to_str_func bin2str, BINARY_MASK, BINARY_SHIFT
 
 OCTAL_MASK  equ 7
 OCTAL_SHIFT equ 3
 
-oct2str:
-  test rax, rax
-  jz num_zero
-  xor rcx, rcx
-  lea r14, [alpha]
-.windup:
-	test rax, rax
-	jz num_unwind
-	mov rdx, rax
-  and rdx, OCTAL_MASK
-  mov dl, [r14 + rdx]
-  dec rsp
-  mov byte [rsp], dl
-	shr rax, OCTAL_SHIFT
-  inc rcx
-  jmp .windup
-jmp num_unwind
+power_of_2_radix_to_str_func oct2str, OCTAL_MASK, OCTAL_SHIFT
 
 HEX_MASK  equ 15
 HEX_SHIFT equ 4
 
-hex2str_l:
-  test rax, rax
-  jz num_zero
-  xor rcx, rcx
-  lea r14, [alpha_lower]
-.windup:
-	test rax, rax
-	jz num_unwind
-	mov rdx, rax
-  and rdx, HEX_MASK
-  mov dl, [r14 + rdx]
-  dec rsp
-  mov byte [rsp], dl
-	shr rax, HEX_SHIFT
-  inc rcx
-  jmp .windup
-jmp num_unwind
-
-hex2str_u:
-  test rax, rax
-  jz num_zero
-  xor rcx, rcx
-  lea r14, [alpha_upper]
-.windup:
-	test rax, rax
-	jz num_unwind
-	mov rdx, rax
-  and rdx, HEX_MASK
-  mov dl, [r14 + rdx]
-  dec rsp
-  mov byte [rsp], dl
-	shr rax, HEX_SHIFT
-  inc rcx
-  jmp .windup
-jmp num_unwind
+power_of_2_radix_to_str_func hex2str_l, HEX_MASK, HEX_SHIFT, alpha_lower
+power_of_2_radix_to_str_func hex2str_u, HEX_MASK, HEX_SHIFT, alpha_upper
 
 ;--------------
 ; num2str - converts number to string of bytes (uses stack to reverse the order)
@@ -420,17 +379,17 @@ num2str:
   test rax, rax
   jz num_zero
   xor rcx, rcx
-.windup:
-	test rax, rax
-	jz num_unwind
-	xor rdx, rdx
-	div rbx ; rax = rax / rbx, rdx = rax % rbx
-  mov dl, [r14 + rdx]
-  dec rsp
-  mov byte [rsp], dl
-  inc rcx
-  jmp .windup
-jmp num_unwind
+  .windup:
+	  test rax, rax
+	  jz num_unwind
+	  xor rdx, rdx
+	  div rbx ; rax = rax / rbx, rdx = rax % rbx
+    mov dl, [r14 + rdx]
+    dec rsp
+    mov byte [rsp], dl
+    inc rcx
+    jmp .windup
+  jmp num_unwind
 
 num_zero:
   call append_zero
