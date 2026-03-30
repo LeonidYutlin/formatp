@@ -58,7 +58,6 @@ To use `formatp` in your code, you need to declare an external function prototyp
 
 extern void fformatp_(int file_descriptor, const char* format_string, ...);
 
-
 int main(void) {
     fformatp_(1, "Hello, %s!", "World");
     return 0;

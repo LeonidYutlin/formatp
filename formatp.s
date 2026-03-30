@@ -162,16 +162,12 @@ fmt_string:
 
 fmt_hex_u:
   call load_arg
-  mov rbx, 16
-  lea r14, [alpha_upper]
-  call num2str
+  call hex2str_u
   jmp fmt_str_loop
 
 fmt_hex_l:
   call load_arg
-  mov rbx, 16
-  lea r14, [alpha_lower]
-  call num2str
+  call hex2str_l
   jmp fmt_str_loop
 
 fmt_decimal:
@@ -185,7 +181,9 @@ SIGN_BIT_MASK equ 0x80000000
 fmt_32_decimal:
   test eax, SIGN_BIT_MASK
   jz fmt_decimal_common
+  push rax
   call append_minus
+  pop rax
   not eax
   inc eax
   jmp fmt_decimal_common
@@ -193,7 +191,9 @@ fmt_32_decimal:
 fmt_64_decimal:
   test rax, SIGN_BIT_MASK
   jz fmt_decimal_common
-  call append_minus  
+  push rax
+  call append_minus
+  pop rax
   not rax
   inc rax
   jmp fmt_decimal_common
@@ -208,16 +208,12 @@ fmt_unsign_decimal:
 
 fmt_binary:
   call load_arg
-  mov rbx, 2
-  lea r14, [alpha_lower]
-  call num2str
+  call bin2str
   jmp fmt_str_loop
   
 fmt_octal:
   call load_arg
-  mov rbx, 8
-  lea r14, [alpha_lower]
-  call num2str
+  call oct2str
   jmp fmt_str_loop
   
 STDERR_FD equ 2
@@ -314,10 +310,13 @@ buf_flush:
   ret
 
 append_minus:
-  push rax
   mov al, '-'
   call buf_append_ch
-  pop rax
+  ret
+
+append_zero:
+  mov al, '0'
+  call buf_append_ch
   ret
 
 clear_buf:
@@ -328,6 +327,87 @@ clear_buf:
   call memset wrt ..plt
   ret
 
+BINARY_MASK  equ 1
+BINARY_SHIFT equ 1
+
+bin2str:
+  test rax, rax
+  jz num_zero
+  xor rcx, rcx
+  lea r14, [alpha]
+.windup:
+	test rax, rax
+	jz num_unwind
+	mov rdx, rax
+  and rdx, BINARY_MASK
+  mov dl, [r14 + rdx]
+  dec rsp
+  mov byte [rsp], dl
+	shr rax, BINARY_SHIFT
+  inc rcx
+  jmp .windup
+jmp num_unwind
+
+OCTAL_MASK  equ 7
+OCTAL_SHIFT equ 3
+
+oct2str:
+  test rax, rax
+  jz num_zero
+  xor rcx, rcx
+  lea r14, [alpha]
+.windup:
+	test rax, rax
+	jz num_unwind
+	mov rdx, rax
+  and rdx, OCTAL_MASK
+  mov dl, [r14 + rdx]
+  dec rsp
+  mov byte [rsp], dl
+	shr rax, OCTAL_SHIFT
+  inc rcx
+  jmp .windup
+jmp num_unwind
+
+HEX_MASK  equ 15
+HEX_SHIFT equ 4
+
+hex2str_l:
+  test rax, rax
+  jz num_zero
+  xor rcx, rcx
+  lea r14, [alpha_lower]
+.windup:
+	test rax, rax
+	jz num_unwind
+	mov rdx, rax
+  and rdx, HEX_MASK
+  mov dl, [r14 + rdx]
+  dec rsp
+  mov byte [rsp], dl
+	shr rax, HEX_SHIFT
+  inc rcx
+  jmp .windup
+jmp num_unwind
+
+hex2str_u:
+  test rax, rax
+  jz num_zero
+  xor rcx, rcx
+  lea r14, [alpha_upper]
+.windup:
+	test rax, rax
+	jz num_unwind
+	mov rdx, rax
+  and rdx, HEX_MASK
+  mov dl, [r14 + rdx]
+  dec rsp
+  mov byte [rsp], dl
+	shr rax, HEX_SHIFT
+  inc rcx
+  jmp .windup
+jmp num_unwind
+
 ;--------------
 ; num2str - converts number to string of bytes (uses stack to reverse the order)
 ; Input:  rax    = number to convert
@@ -337,12 +417,12 @@ clear_buf:
 ; Destr:  rax, rdi, rdx, rcx 
 ;--------------
 num2str:
-  xor rcx, rcx
   test rax, rax
-  jz .zero
+  jz num_zero
+  xor rcx, rcx
 .windup:
 	test rax, rax
-	jz .unwind
+	jz num_unwind
 	xor rdx, rdx
 	div rbx ; rax = rax / rbx, rdx = rax % rbx
   mov dl, [r14 + rdx]
@@ -350,24 +430,28 @@ num2str:
   mov byte [rsp], dl
   inc rcx
   jmp .windup
-.unwind:
-  test rcx, rcx
-  jz .exit
-  mov byte al, [rsp]
-  inc rsp
-  push rcx
-  call buf_append_ch
-  pop rcx
-  loop .unwind
-.exit:
+jmp num_unwind
+
+num_zero:
+  call append_zero
   ret
-.zero:
-  mov al, '0'
-  call buf_append_ch
-  ret
+
+num_unwind:
+  .loop:
+    test rcx, rcx
+    jz .exit
+    mov byte al, [rsp]
+    inc rsp
+    push rcx
+    call buf_append_ch
+    pop rcx
+    loop .loop
+  .exit:
+    ret
 
 section .rodata
 
+alpha equ alpha_lower
 alpha_lower: db "0123456789abcdef"
 alpha_upper: db "0123456789ABCDEF"
 
