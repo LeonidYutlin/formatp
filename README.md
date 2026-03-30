@@ -52,11 +52,14 @@ extern void fformatp_(int fd, const char* fmt, ...)  __attribute__ ((format (pri
 
 ## Usage
 
+### Prerequisites 
+formatp depends on `libc`'s `memset` and `strlen`, which is why you will need to link with `libc`
+
+### Minimal working example
+
 To use `formatp` in your code, you need to declare an external function prototype in your C code.
 
 ```c
-#include <string.h> //required for memset and strlen
-
 extern void fformatp_(int file_descriptor, const char* format_string, ...);
 
 int main(void) {
@@ -65,7 +68,7 @@ int main(void) {
 }
 ```
 
-Or you can use `formatp.h`, which has these provided for you, including some additional macros. `formatp.h` includes `<string.h>` and optionally `<stdio.h>` (disableable by `#define FORMATP_NO_STDIO`)
+Or you can use `formatp.h`, which has these provided for you, including some additional macros. `formatp.h` includes `<stdio.h>` (disableable by `#define FORMATP_NO_STDIO`), which is used for `fileno` in macros.
 
 ### Additional Macros
 

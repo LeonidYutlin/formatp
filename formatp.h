@@ -1,8 +1,6 @@
 #ifndef FORMATP_H
 #define FORMATP_H
 
-#include <string.h>
-
 #define formatp(fmt, ...) \
   fformatp(stdout, fmt __VA_OPT__(,) __VA_ARGS__)
 
