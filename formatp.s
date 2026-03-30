@@ -210,12 +210,17 @@ fmt_binary:
   call load_arg
   call bin2str
   jmp fmt_str_loop
+
+fmt_quat:
+  call load_arg
+  call quat2str
+  jmp fmt_str_loop
   
 fmt_octal:
   call load_arg
   call oct2str
   jmp fmt_str_loop
-  
+
 STDERR_FD equ 2
 FMT_ERROR_ARGC equ 4
 
@@ -331,6 +336,10 @@ clear_buf:
   power_of_2_radix_to_str_func %1, %2, %3, alpha
 %endmacro
 
+; macro for converting given power of 2 into str
+; declares a label %1 that uses %2 mask and %3 shift
+; to get indexes of alphabet symbols from %4 and put them on the stack,
+; then unwind and append it all to formatp_buf
 %macro power_of_2_radix_to_str_func 4
  %1:
   test rax, rax
@@ -355,6 +364,11 @@ BINARY_MASK  equ 1
 BINARY_SHIFT equ 1
 
 power_of_2_radix_to_str_func bin2str, BINARY_MASK, BINARY_SHIFT
+
+QUATERNARY_MASK  equ 3
+QUATERNARY_SHIFT equ 2
+
+power_of_2_radix_to_str_func quat2str, QUATERNARY_MASK, QUATERNARY_SHIFT
 
 OCTAL_MASK  equ 7
 OCTAL_SHIFT equ 3
@@ -434,7 +448,9 @@ jmp_table:
                           dq fmt_decimal        - jmp_table
   times ('o' - 'd' - 1)   dq fmt_error          - jmp_table
                           dq fmt_octal          - jmp_table
-  times ('s' - 'o' - 1)   dq fmt_error          - jmp_table
+  times ('q' - 'o' - 1)   dq fmt_error          - jmp_table ; which is just p
+                          dq fmt_quat           - jmp_table
+  times ('s' - 'q' - 1)   dq fmt_error          - jmp_table ; which is just r
                           dq fmt_string         - jmp_table
   times ('u' - 's' - 1)   dq fmt_error          - jmp_table
                           dq fmt_unsign_decimal - jmp_table

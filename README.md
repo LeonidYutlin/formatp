@@ -33,6 +33,7 @@ an error to `stderr`, in a form of the following message:
 | `%d\%ld`       | **D**ecimal      | `int\long`   | 32\64-bit signed decimal |
 | `%u\%lu`       | **U**nsigned     | `uint\ulong` | 32\64-bit unsigned decimal |
 | `%b\%lb`       | **B**inary       | `int\long`   | 32\64-bit unsigned binary |
+| `%q\%lq`       | **Q**uaternary   | `int\long`   | 32\64-bit unsigned quaternary |
 | `%o\%lo`       | **O**ctal        | `int\long`   | 32\64-bit unsigned octal |
 | `%x\%lx`       | he**X**adecimal  | `int\long`   | 32\64-bit unsigned hexadecimal in lowercase |
 | `%X\%lX`       | he**X**adecimal  | `int\long`   | 32\64-bit unsigned hexadecimal in uppercase |

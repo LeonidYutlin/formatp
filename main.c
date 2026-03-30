@@ -41,8 +41,8 @@ int main(void) {
           INT_MIN, INT_MIN, INT_MIN,
           UINT_MAX, UINT_MAX, UINT_MAX);
 
-  formatp("%d is %b 2 and %o 8 and %x %X 16\n", 
-          79, 79, 79, 79, 79);
+  formatp("%d is %b 2 and %o 8 and %x %X 16 and %q 4\n", 
+          79, 79, 79, 79, 79, 79);
   formatp("gwonk is that true: %B\n", 10);
   formatp("gonk  is that twue: %B\n", 1 - 1);
 
