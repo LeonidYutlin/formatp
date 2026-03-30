@@ -2,7 +2,7 @@ default rel
 
 global fformatp_
 extern strlen
-extern clear_buffer
+extern memset
 
 ; r12, r13, r14, r15, rbx, rsp, rbp are CALLEE-saved
 ; rest are CALLER-saved
@@ -310,7 +310,7 @@ buf_force_flush:
 buf_flush:
   FD_WRITE
   lea rdi, [formatp_buf]
-  call clear_buffer ; call to my own function in main.c
+  call clear_buf ; call to my own function in main.c
   ret
 
 append_minus:
@@ -318,6 +318,14 @@ append_minus:
   mov al, '-'
   call buf_append_ch
   pop rax
+  ret
+
+clear_buf:
+  mov rdx, rdi 
+  lea rdi, [formatp_buf]
+  sub rdx, rdi
+  xor esi, esi ; rsi = NULL_TERM
+  call memset wrt ..plt
   ret
 
 ;--------------

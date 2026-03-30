@@ -52,12 +52,12 @@ extern void fformatp_(int fd, const char* fmt, ...)  __attribute__ ((format (pri
 ## Usage
 
 To use `formatp` in your code, you need to declare an external function prototype in your C code.
-`formatp` also references an external function `void clear_buffer(char* buf)` in its implementation, so you need to have such function implemented somewhere in your codebase
 
 ```c
+#include <string.h> //required for memset and strlen
+
 extern void fformatp_(int file_descriptor, const char* format_string, ...);
 
-void clear_buffer(char* buf) {...}
 
 int main(void) {
     fformatp_(1, "Hello, %s!", "World");
@@ -65,7 +65,7 @@ int main(void) {
 }
 ```
 
-Or you can use `formatp.h`, which has these provided for you, including some additional macros
+Or you can use `formatp.h`, which has these provided for you, including some additional macros. `formatp.h` includes `<string.h>` and optionally `<stdio.h>` (disableable by `#define FORMATP_NO_STDIO`)
 
 ### Additional Macros
 
