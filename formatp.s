@@ -31,9 +31,11 @@ fformatp_:
   mov rbp, rsp
   push r10
   push rbx
+  push rax
   call handle_fmt_str
  
   .return:
+    pop rax
     pop rbx
     pop r10
     pop rbp
@@ -45,7 +47,6 @@ fformatp_:
     ;pop rcx 
     ;pop r8
     ;pop r9
-
     push r10 ; push saved ret address onto the stack
     ret
 
@@ -351,7 +352,7 @@ clear_buf:
  %1:
   test rax, rax
   jz num_zero
-  xor rcx, rcx
+  xor ecx, ecx
   lea r10, [%4]
   .windup:
 	  test rax, rax
@@ -399,11 +400,11 @@ power_of_2_radix_to_str_func hex2str_u, HEX_MASK, HEX_SHIFT, alpha_upper
 num2str:
   test rax, rax
   jz num_zero
-  xor rcx, rcx
+  xor ecx, ecx
   .windup:
 	  test rax, rax
 	  jz num_unwind
-	  xor rdx, rdx
+	  xor edx, edx
 	  div rbx ; rax = rax / rbx, rdx = rax % rbx
     mov dl, [r10 + rdx]
     dec rsp
