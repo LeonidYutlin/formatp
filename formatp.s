@@ -7,6 +7,9 @@ extern memset
 ; r12, r13, r14, r15, rbx, rsp, rbp are CALLEE-saved
 ; rest are CALLER-saved
 
+; TODO: description for funcs
+; TODO: simpler indentation rule
+
 BUF_SIZE equ 64
 REG_SIZE equ 8
 
@@ -57,21 +60,23 @@ FMT_ARGS_INDEX       equ 3
   syscall
 %endmacro
 
-NULL_CHAR   equ 0
-CONV_SPEC   equ '%'
-CHAR_SPEC   equ 'c'
-STR_SPEC    equ 's'
-DEC_SPEC    equ 'd'
-UNSIGN_SPEC equ 'u'
-BIN_SPEC    equ 'b'
-TERN_SPEC   equ 't'
-QUAT_SPEC   equ 'q'
-OCT_SPEC    equ 'o'
-LONG_SPEC   equ 'l'
-HEX_U_SPEC  equ 'X'
-HEX_L_SPEC  equ 'x'
-BOOL_SPEC   equ 'B'
-COUNT_SPEC  equ 'n'
+NULL_CHAR    equ 0
+CONV_SPEC    equ '%'
+CHAR_SPEC    equ 'c'
+STR_SPEC     equ 's'
+DEC_SPEC     equ 'd'
+UNSIGN_SPEC  equ 'u'
+BIN_SPEC     equ 'b'
+TERN_SPEC    equ 't'
+QUAT_SPEC    equ 'q'
+OCT_SPEC     equ 'o'
+LONG_SPEC    equ 'l'
+HEX_U_SPEC   equ 'X'
+HEX_L_SPEC   equ 'x'
+BOOL_SPEC    equ 'B'
+COUNT_SPEC   equ 'n'
+RADIX_L_SPEC equ 'r'
+RADIX_U_SPEC equ 'R'
 
 handle_fmt_str:
   ; r9 will store how many REG_SIZE sized shifts are we into processing the args
@@ -80,45 +85,41 @@ handle_fmt_str:
   xor r15d, r15d
   lea rdi, [formatp_buf]
   fmt_str_loop:
-     lodsb
-     cmp al, CONV_SPEC
-     je .escape
-       cmp al, NULL_CHAR
-       je fmt_str_return
-       call buf_append_ch
-       jmp fmt_str_loop
+    lodsb
+    cmp al, CONV_SPEC
+    je .escape
+      cmp al, NULL_CHAR
+      je fmt_str_return
+      call buf_append_ch
+      jmp fmt_str_loop
 
-     .escape:
-       xor eax, eax
-       lodsb
+    .escape:
+      xor eax, eax
+      lodsb
     
-       xor cl, cl  ; cl is 0 (32 bit arg)
-       cmp al, LONG_SPEC ; 64 bit arg instead of 32
-       jne fmt_str_handle_fmt_char
-       .set_long_arg_flag:
-       inc cl      ; cl is now 1 (64 bit arg)
-       lodsb
+      xor cl, cl  ; cl is 0 (32 bit arg)
+      cmp al, LONG_SPEC ; 64 bit arg instead of 32
+      jne fmt_str_handle_fmt_char
+      .set_long_arg_flag:
+      inc cl      ; cl is now 1 (64 bit arg)
+      lodsb
   
-       fmt_str_handle_fmt_char:
-       cmp al, HEX_U_SPEC ; edge case no. 1
-       je fmt_hex_u
-       cmp al, BOOL_SPEC ; edge case no. 2
-       je fmt_bool 
-       cmp al, CONV_SPEC ; edge case no. 3
-       je fmt_percent
-       cmp al, JMP_TABLE_FIRST_CHAR ; any below is def-tly an error
-       jb fmt_error
-       cmp al, JMP_TABLE_LAST_CHAR  ; any above is def-tly an error
-       ja fmt_error
-       
-       lea rbx, [jmp_table]
-       push rcx
-       ; move with sign extension
-       movsx rcx, dword [rbx + (rax - JMP_TABLE_FIRST_CHAR) * REG_SIZE]
-       ; add [jmp_table] so that we compensate the relativeness of jmp_table's contents
-       add rbx, rcx
-       pop rcx
-       jmp rbx
+      fmt_str_handle_fmt_char:
+      cmp al, CONV_SPEC ; edge case
+      je fmt_percent
+      cmp al, JMP_TABLE_FIRST_CHAR ; any below is def-tly an error
+      jb fmt_error
+      cmp al, JMP_TABLE_LAST_CHAR  ; any above is def-tly an error
+      ja fmt_error
+      
+      lea rbx, [jmp_table]
+      push rcx
+      ; move with sign extension
+      movsx rcx, dword [rbx + (rax - JMP_TABLE_FIRST_CHAR) * REG_SIZE]
+      ; add [jmp_table] so that we compensate the relativeness of jmp_table's contents
+      add rbx, rcx
+      pop rcx
+      jmp rbx
   fmt_str_return:
   	call buf_force_flush
     ret
@@ -172,6 +173,7 @@ fmt_string:
   mov rsi, rax
   test rsi, rsi
   jz .null
+
   .nonnull:
   mov rdi, rsi
   call strlen wrt ..plt
@@ -181,6 +183,7 @@ fmt_string:
   pop rsi
   lea rdi, [formatp_buf]
   jmp fmt_str_loop
+
   .null:
   mov rdx, null_str_len
   add r15, rdx
@@ -241,12 +244,32 @@ fmt_binary:
   call bin2str
   jmp fmt_str_loop
 
-;fmt_ternary:
-;  call load_arg
-;  mov rbx, 3
-;  lea r10, [alpha_lower]
-;  call num2str
-;  jmp fmt_str_loop
+fmt_radix_common:
+  call load_arg
+  push rax
+  call str2num
+  pop rax
+  test rbx, rbx
+  jz .error
+  cmp rbx, alpha_len
+  jg .error
+  ret
+
+  .error:
+    add rsp, REG_SIZE
+    jmp fmt_error
+
+fmt_radix_l:
+  call fmt_radix_common
+  lea r10, [alpha_lower]
+  call num2str
+  jmp fmt_str_loop
+
+fmt_radix_u:
+  call fmt_radix_common
+  lea r10, [alpha_upper]
+  call num2str
+  jmp fmt_str_loop
 
 fmt_quat:
   call load_arg
@@ -411,6 +434,34 @@ power_of_2_radix_to_str_func hex2str_l, HEX_SHIFT, alpha_lower
 power_of_2_radix_to_str_func hex2str_u, HEX_SHIFT, alpha_upper
 
 ;--------------
+; str2num - converts string of bytes to positive integer, 
+;           until a whitespace is encountered. 
+;           In case of an error returns 0
+; Input:  rsi -> string
+; Output: rbx = positive integer
+; Destr:  rsi, rbx, rdx, rax
+;--------------
+str2num:
+  xor eax, eax
+  xor ebx, ebx
+  .loop:
+    lodsb
+    cmp al, '0'
+    jb .exit
+    cmp al, '9'
+    ja .exit
+    mov rdx, rbx
+    shl rdx, 2
+    add rbx, rdx
+    shl rbx, 1
+    sub al, '0'
+    add rbx, rax
+    jmp .loop
+  .exit:
+    dec rsi
+    ret
+
+;--------------
 ; num2str - converts number to string of bytes (uses stack to reverse the order)
 ; Input:  rax    = number to convert
 ;         rbx    = radix
@@ -454,8 +505,9 @@ num_unwind:
 section .rodata
 
 alpha equ alpha_lower
-alpha_lower: db "0123456789abcdef"
-alpha_upper: db "0123456789ABCDEF"
+alpha_lower: db "0123456789abcdefghijklmnopqrstuvwxyz"
+alpha_upper: db "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+alpha_len equ $ - alpha_upper
 
 null_str: db "(null)"
 null_str_len equ $ - null_str
@@ -468,10 +520,16 @@ true_str_len equ $ - true_str
 fmt_error_str_64: db 0x0A, "[ERROR]: Unrecognized escape sequence: '%%l%c' in ", 0x22, "%s", 0x22, 0x0A, 0
 fmt_error_str_32: db 0x0A, "[ERROR]: Unrecognized escape sequence: '%%%c' in ", 0x22, "%s", 0x22, 0x0A, 0
 
-JMP_TABLE_FIRST_CHAR equ BIN_SPEC
+JMP_TABLE_FIRST_CHAR equ BOOL_SPEC
 JMP_TABLE_LAST_CHAR  equ HEX_L_SPEC
 
 jmp_table:
+                                         dq fmt_bool           - jmp_table
+  times (RADIX_U_SPEC - BOOL_SPEC - 1)   dq fmt_error          - jmp_table
+                                         dq fmt_radix_u        - jmp_table
+  times (HEX_U_SPEC - RADIX_U_SPEC - 1)  dq fmt_error          - jmp_table
+                                         dq fmt_hex_u          - jmp_table
+  times (BIN_SPEC - HEX_U_SPEC - 1)      dq fmt_error          - jmp_table
                                          dq fmt_binary         - jmp_table
                                          dq fmt_char           - jmp_table
                                          dq fmt_decimal        - jmp_table
@@ -480,7 +538,7 @@ jmp_table:
                                          dq fmt_octal          - jmp_table
   times (QUAT_SPEC - OCT_SPEC - 1)       dq fmt_error          - jmp_table
                                          dq fmt_quat           - jmp_table
-  times (STR_SPEC - QUAT_SPEC - 1)       dq fmt_error          - jmp_table
+                                         dq fmt_radix_l        - jmp_table
                                          dq fmt_string         - jmp_table
   times (UNSIGN_SPEC - STR_SPEC - 1)     dq fmt_error          - jmp_table
                                          dq fmt_unsign_decimal - jmp_table

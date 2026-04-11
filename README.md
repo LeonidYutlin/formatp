@@ -60,6 +60,8 @@ Full list of available conversion specifiers is listed down below:
 | `%o\%lo`       | **O**ctal        | `int\long`   | 32\64-bit unsigned octal |
 | `%x\%lx`       | he**X**adecimal  | `int\long`   | 32\64-bit unsigned hexadecimal in lowercase |
 | `%X\%lX`       | he**X**adecimal  | `int\long`   | 32\64-bit unsigned hexadecimal in uppercase |
+| `%r\%lr` followed by a number 1-36     | **R**adix        | `int\long`   | 32\64-bit unsigned n-base number in lowercase |
+| `%R\%lR` followed by a number 1-36     | **R**adix        | `int\long`   | 32\64-bit unsigned n-base number in uppercase |
 | `%B`           | **B**oolean      | `long`       | `"false"` if the argument is 0, `"true"` otherwise |
 | `%n`           | **N**umber of bytes | `size_t*`      | produces no output, instead writes the number of bytes written so far (including those that are buffered at the moment) to a pointer. If the pointer is `NULL`, does nothing  |
 | `%%`           | -                | -          | the percent character itself, `'%'` |
@@ -87,12 +89,40 @@ int main(void) {
             "Binary:  %b\n"
             "Octal:   %o\n"
             "Hexa:    %x (or %X)\n"
-            "Quat:    %q\n"
+            "Quat:    %q\n",
             79, 79, 79, 79, 79, 79);
 
     formatp("Boolean true: %B\n", 10);
     formatp("Boolean false: %B\n", 1 - 1);
     formatp("%s is a string that isn't %s\n", "Hello", NULL);
+
+    size_t n1 = 0;
+    size_t n2 = 0;
+    size_t n3 = 0;
+    formatp("ABC%nDEF%n%B%n\n", &n1, &n2, true, &n3);
+    formatp("n1 = %lu\n"
+            "n2 = %lu\n"
+            "n3 = %lu\n", 
+            n1, n2, n3);
+
+    formatp("base 2 - %r2\n"
+            "base 3 - %r3\n"
+            "base 4 - %r4\n"
+            "base 5 - %r5\n"
+            "base 6 - %r6\n"
+            "base 7 - %r7\n"
+            "base 8 - %r8\n"
+            "base 9 - %r9\n"
+            "base 10 - %r10\n"
+            "base 11 - %r11\n"
+            "base 12 - %r12\n"
+            "base 13 - %r13\n"
+            "...\n"
+            "base 27 - %r27\n"
+            "base 36 - %r36 (or %lR36)\n",
+            35, 35, 35, 35, 35, 
+            35, 35, 35, 35, 35, 
+            35, 35, 35, 35, 35);
 
     return 0;
 }
@@ -112,6 +142,25 @@ Quat:    1033
 Boolean true: true
 Boolean false: false
 Hello is a string that isn't (null)
+ABCDEFtrue
+n1 = 3
+n2 = 6
+n3 = 10
+base 2 - 100011
+base 3 - 1022
+base 4 - 203
+base 5 - 120
+base 6 - 55
+base 7 - 50
+base 8 - 43
+base 9 - 38
+base 10 - 35
+base 11 - 32
+base 12 - 2b
+base 13 - 29
+...
+base 27 - 18
+base 36 - z (or Z)
 ```
 
 ### Notes
@@ -153,6 +202,8 @@ which is used for `fileno` in macros
 - The output is buffered to issue less write syscalls
 - `formatp` uses an internal jump table to reduce comparisons per `'%'` processed
 - The assembly bindings are PIE-compliant
+- If you can use an alternative conversion specification for a power of 2 base number (for example instead of `%r8` you can use `%o`), then it is better to use the version that isn't `%r`, since all powers of 2 conversions use bit shifts instead of division, making them faster
+
 
 `formatp.h` contains macros that wrap the assembly bindings in a more user-friendly way
 ```c
