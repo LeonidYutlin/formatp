@@ -1,4 +1,5 @@
 #include <limits.h>
+#include <stdbool.h>
 #include "formatp.h"
 
 void runTests();
@@ -9,7 +10,19 @@ int main(void) {
 }
 
 void runTests() {
-  formatp("%t5 ", 79); // output: 022
+  //formatp("%i3\n", 8); // output: 22
+
+  size_t n1 = 0;
+  size_t n2 = 0;
+  size_t n3 = 0;
+  formatp("ABC%nDEF%n%B%n\n", &n1, &n2, true, &n3);
+  formatp("n1 = %lu\n"
+          "n2 = %lu\n"
+          "n3 = %lu\n", 
+          n1, n2, n3);
+
+  return;
+
   formatp("What if i try to use l where im not supposed to? %lB", 1);
   formatp("Hi there is an error in this fmt str %r\n");
   formatp("And here %lE too\n");

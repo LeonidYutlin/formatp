@@ -29,24 +29,19 @@ fformatp_:
 
   push rbp ; save rbp
   mov rbp, rsp
+  push r15
   push r10
   push rbx
-  push rax
   call handle_fmt_str
  
   .return:
-    pop rax
     pop rbx
     pop r10
+    mov rax, r15
+    pop r15
     pop rbp
 
     add rsp, REG_ARGC * REG_SIZE
-    ;pop rdi
-    ;pop rsi
-    ;pop rdx
-    ;pop rcx 
-    ;pop r8
-    ;pop r9
     push r10 ; push saved ret address onto the stack
     ret
 
@@ -54,7 +49,7 @@ fformatp_:
 ; [0 - saved rbp][1 - fd arg][2 - fmt str arg][3+ fmt params]
 FD_ARG_INDEX         equ 1
 FMT_STR_ARG_INDEX    equ 2
-FMT_ARGS_START_INDEX equ 3
+FMT_ARGS_INDEX       equ 3
 
 %macro FD_WRITE 0 
   mov rax, 0x1
@@ -76,10 +71,13 @@ LONG_SPEC   equ 'l'
 HEX_U_SPEC  equ 'X'
 HEX_L_SPEC  equ 'x'
 BOOL_SPEC   equ 'B'
+COUNT_SPEC  equ 'n'
 
 handle_fmt_str:
   ; r9 will store how many REG_SIZE sized shifts are we into processing the args
-  mov r9,  FMT_ARGS_START_INDEX
+  mov r9,  FMT_ARGS_INDEX
+  ; r15 will store how many characters we have written so far
+  xor r15d, r15d
   lea rdi, [formatp_buf]
   fmt_str_loop:
      lodsb
@@ -145,6 +143,14 @@ fmt_bool:
   pop rsi
   jmp fmt_str_loop
 
+fmt_count:
+  call ensure_no_64_prefix
+  call load_64_arg
+  test rax, rax
+  jz fmt_str_loop
+  mov [rax], r15
+  jmp fmt_str_loop
+
 fmt_percent:
   call ensure_no_64_prefix
   mov al, CONV_SPEC
@@ -169,13 +175,15 @@ fmt_string:
   .nonnull:
   mov rdi, rsi
   call strlen wrt ..plt
-  mov rdx, rax 
+  add r15, rax
+  mov rdx, rax
   FD_WRITE
   pop rsi
   lea rdi, [formatp_buf]
   jmp fmt_str_loop
   .null:
   mov rdx, null_str_len
+  add r15, rdx
   lea rsi, [null_str]
   FD_WRITE
   pop rsi
@@ -233,12 +241,12 @@ fmt_binary:
   call bin2str
   jmp fmt_str_loop
 
-fmt_ternary:
-  call load_arg
-  mov rbx, 3
-  lea r10, [alpha_lower]
-  call num2str
-  jmp fmt_str_loop
+;fmt_ternary:
+;  call load_arg
+;  mov rbx, 3
+;  lea r10, [alpha_lower]
+;  call num2str
+;  jmp fmt_str_loop
 
 fmt_quat:
   call load_arg
@@ -316,10 +324,7 @@ load_8_arg:
 buf_append_ch:
   lea r10, [formatp_buf + BUF_SIZE]
   cmp rdi, r10
-  je .flush
-  .store:
-  stosb
-  ret
+  jne .store
   .flush:
   push rax
   push rsi
@@ -329,7 +334,10 @@ buf_append_ch:
   pop rsi
   pop rax
   lea rdi, [formatp_buf]
-  jmp .store
+  .store:
+  stosb
+  inc r15
+  ret
 
 buf_force_flush:
   mov rdx, rdi
@@ -467,13 +475,14 @@ jmp_table:
                                          dq fmt_binary         - jmp_table
                                          dq fmt_char           - jmp_table
                                          dq fmt_decimal        - jmp_table
-  times (OCT_SPEC - DEC_SPEC - 1)        dq fmt_error          - jmp_table
+  times (COUNT_SPEC - DEC_SPEC - 1)      dq fmt_error          - jmp_table
+                                         dq fmt_count          - jmp_table
                                          dq fmt_octal          - jmp_table
   times (QUAT_SPEC - OCT_SPEC - 1)       dq fmt_error          - jmp_table
                                          dq fmt_quat           - jmp_table
   times (STR_SPEC - QUAT_SPEC - 1)       dq fmt_error          - jmp_table
                                          dq fmt_string         - jmp_table
-                                         dq fmt_ternary        - jmp_table
+  times (UNSIGN_SPEC - STR_SPEC - 1)     dq fmt_error          - jmp_table
                                          dq fmt_unsign_decimal - jmp_table
   times (HEX_L_SPEC - UNSIGN_SPEC - 1)   dq fmt_error          - jmp_table
                                          dq fmt_hex_l          - jmp_table

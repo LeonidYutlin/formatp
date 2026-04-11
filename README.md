@@ -24,8 +24,8 @@ make run
 ### Synopsis [^1]
 Defined in header `formatp.h`
 ```c
-void formatp(const char* format, ...); //(1)
-void fformatp(FILE* stream, const char* format, ...); //(2)
+size_t formatp(const char* format, ...); //(1)
+size_t fformatp(FILE* stream, const char* format, ...); //(2)
 ```
 Converts given args to character string equivalent, 
 dictated by conversion specifiers inside `format` and writes the result to:
@@ -56,17 +56,17 @@ Full list of available conversion specifiers is listed down below:
 | `%d\%ld`       | **D**ecimal      | `int\long`   | 32\64-bit signed decimal |
 | `%u\%lu`       | **U**nsigned     | `uint\ulong` | 32\64-bit unsigned decimal |
 | `%b\%lb`       | **B**inary       | `int\long`   | 32\64-bit unsigned binary |
-| `%t\%lt`       | **T**ernary      | `int\long`   | 32\64-bit unsigned ternary |
 | `%q\%lq`       | **Q**uaternary   | `int\long`   | 32\64-bit unsigned quaternary |
 | `%o\%lo`       | **O**ctal        | `int\long`   | 32\64-bit unsigned octal |
 | `%x\%lx`       | he**X**adecimal  | `int\long`   | 32\64-bit unsigned hexadecimal in lowercase |
 | `%X\%lX`       | he**X**adecimal  | `int\long`   | 32\64-bit unsigned hexadecimal in uppercase |
 | `%B`           | **B**oolean      | `long`       | `"false"` if the argument is 0, `"true"` otherwise |
+| `%n`           | **N**umber of bytes | `long*`      | writes the number of bytes written so far (including those that are buffered at the moment) to a pointer. If the pointer is `NULL`, does nothing  |
 | `%%`           | -                | -          | the percent character itself, `'%'` |
 
 **Return value**
 
-None
+Number of characters that was successfully printed
 
 [^1]: mostly inspired by [cpp reference](https://en.cppreference.com/w/c/io/fprintf)
 
@@ -88,8 +88,7 @@ int main(void) {
             "Octal:   %o\n"
             "Hexa:    %x (or %X)\n"
             "Quat:    %q\n"
-            "Ternary: %t\n", 
-            79, 79, 79, 79, 79, 79, 79);
+            79, 79, 79, 79, 79, 79);
 
     formatp("Boolean true: %B\n", 10);
     formatp("Boolean false: %B\n", 1 - 1);
@@ -110,7 +109,6 @@ Binary:  1001111
 Octal:   117
 Hexa:    4f (or 4F)
 Quat:    1033
-Ternary: 2221
 Boolean true: true
 Boolean false: false
 Hello is a string that isn't (null)
