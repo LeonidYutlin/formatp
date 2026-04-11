@@ -53,7 +53,7 @@ Full list of available conversion specifiers is listed down below:
 |--------------|------------------|--------------|--------|
 | `%c`           | **C**haracter    | `char`       | single 8-bit character |
 | `%s`           | **S**tring       | `char*`      | if the pointer isn't `NULL`, prints characters until `'\0'` is reached, otherwise prints `"(null)"`. This specification forces a buffer flush before processing |
-| `%z`           | si**Z**ed string       | `size_t`, then `char*`      | if the pointer isn't `NULL`, prints characters until `'\0'` is reached or n amount of characters (specified by size_t) are printed, otherwise prints `"(null)"` if n is big enough, otherwise does nothing. This specification forces a buffer flush before processing |
+| `%z`           | si**Z**ed string       | `size_t`, then `char*`      | if the pointer isn't `NULL`, prints characters until `'\0'` is reached or `n` amount of characters (specified by `size_t` arg) are printed, otherwise prints `"(null)"` if `n` is big enough, otherwise does nothing. This specification forces a buffer flush before processing |
 | `%d\%ld`       | **D**ecimal      | `int\long`   | 32\64-bit signed decimal |
 | `%u\%lu`       | **U**nsigned     | `uint\ulong` | 32\64-bit unsigned decimal |
 | `%b\%lb`       | **B**inary       | `int\long`   | 32\64-bit unsigned binary |
