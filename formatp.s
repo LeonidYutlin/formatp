@@ -64,6 +64,7 @@ NULL_CHAR    equ 0
 CONV_SPEC    equ '%'
 CHAR_SPEC    equ 'c'
 STR_SPEC     equ 's'
+SZ_STR_SPEC  equ 'z'
 DEC_SPEC     equ 'd'
 UNSIGN_SPEC  equ 'u'
 BIN_SPEC     equ 'b'
@@ -162,6 +163,45 @@ fmt_char:
   call ensure_no_64_prefix
   call load_8_arg
   call buf_append_ch
+  jmp fmt_str_loop
+
+fmt_sized_string:
+  call ensure_no_64_prefix
+  push rsi
+  call buf_force_flush
+
+  call load_64_arg
+  mov rcx, rax
+
+  call load_64_arg
+  mov rsi, rax
+  test rsi, rsi
+  jz .null
+
+  .nonnull:
+  mov rdi, rsi
+  call strlen wrt ..plt
+  cmp rcx, rax
+  jae .print
+  mov rax, rcx
+  .print:
+  add r15, rax
+  mov rdx, rax
+  FD_WRITE
+  pop rsi
+  lea rdi, [formatp_buf]
+  jmp fmt_str_loop
+
+  .null:
+  mov rdx, null_str_len
+  cmp rcx, null_str_len
+  jb .exit
+  add r15, rdx
+  lea rsi, [null_str]
+  FD_WRITE
+  .exit:
+  pop rsi
+  lea rdi, [formatp_buf]
   jmp fmt_str_loop
 
 fmt_string:
@@ -293,12 +333,7 @@ fmt_error:
   pop rcx
   
   test cl, cl
-  jz .error_32 ; there was no LONG_SPEC specificator before
-  lea rsi, [fmt_error_str_64]
-  jmp .error_str_loaded
-  .error_32:
-  lea rsi, [fmt_error_str_32]
-  .error_str_loaded:
+  lea rsi, [fmt_error_str]
   push rsi
   push STDERR_FD
   push rbp
@@ -517,11 +552,10 @@ false_str_len equ $ - false_str
 true_str: db "true"
 true_str_len equ $ - true_str
 
-fmt_error_str_64: db 0x0A, "[ERROR]: Unrecognized escape sequence: '%%l%c' in ", 0x22, "%s", 0x22, 0x0A, 0
-fmt_error_str_32: db 0x0A, "[ERROR]: Unrecognized escape sequence: '%%%c' in ", 0x22, "%s", 0x22, 0x0A, 0
+fmt_error_str: db 0x0A, "[ERROR]: Unknown conversion type character: '%c' in format ", 0x22, "%s", 0x22, 0x0A, 0
 
 JMP_TABLE_FIRST_CHAR equ BOOL_SPEC
-JMP_TABLE_LAST_CHAR  equ HEX_L_SPEC
+JMP_TABLE_LAST_CHAR  equ SZ_STR_SPEC
 
 jmp_table:
                                          dq fmt_bool           - jmp_table
@@ -544,3 +578,5 @@ jmp_table:
                                          dq fmt_unsign_decimal - jmp_table
   times (HEX_L_SPEC - UNSIGN_SPEC - 1)   dq fmt_error          - jmp_table
                                          dq fmt_hex_l          - jmp_table
+  times (SZ_STR_SPEC - HEX_L_SPEC - 1)   dq fmt_error          - jmp_table
+                                         dq fmt_sized_string   - jmp_table

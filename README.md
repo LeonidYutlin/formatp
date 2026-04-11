@@ -53,6 +53,7 @@ Full list of available conversion specifiers is listed down below:
 |--------------|------------------|--------------|--------|
 | `%c`           | **C**haracter    | `char`       | single 8-bit character |
 | `%s`           | **S**tring       | `char*`      | if the pointer isn't `NULL`, prints characters until `'\0'` is reached, otherwise prints `"(null)"`. This specification forces a buffer flush before processing |
+| `%z`           | si**Z**ed string       | `size_t`, then `char*`      | if the pointer isn't `NULL`, prints characters until `'\0'` is reached or n amount of characters (specified by size_t) are printed, otherwise prints `"(null)"` if n is big enough, otherwise does nothing. This specification forces a buffer flush before processing |
 | `%d\%ld`       | **D**ecimal      | `int\long`   | 32\64-bit signed decimal |
 | `%u\%lu`       | **U**nsigned     | `uint\ulong` | 32\64-bit unsigned decimal |
 | `%b\%lb`       | **B**inary       | `int\long`   | 32\64-bit unsigned binary |
@@ -94,7 +95,10 @@ int main(void) {
 
     formatp("Boolean true: %B\n", 10);
     formatp("Boolean false: %B\n", 1 - 1);
+
     formatp("%s is a string that isn't %s\n", "Hello", NULL);
+    formatp("%s with 3 characters is just %z\n", "Funeral", 3, "Funeral");
+    formatp("%s with 3 characters is just %z\n", NULL, 3, NULL);
 
     size_t n1 = 0;
     size_t n2 = 0;
@@ -142,6 +146,8 @@ Quat:    1033
 Boolean true: true
 Boolean false: false
 Hello is a string that isn't (null)
+Funeral with 3 characters is just Fun
+(null) with 3 characters is just
 ABCDEFtrue
 n1 = 3
 n2 = 6
