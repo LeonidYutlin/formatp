@@ -62,7 +62,20 @@ FMT_ARGS_START_INDEX equ 3
   syscall
 %endmacro
 
-NULL_CHAR equ 0
+NULL_CHAR   equ 0
+CONV_SPEC   equ '%'
+CHAR_SPEC   equ 'c'
+STR_SPEC    equ 's'
+DEC_SPEC    equ 'd'
+UNSIGN_SPEC equ 'u'
+BIN_SPEC    equ 'b'
+TERN_SPEC   equ 't'
+QUAT_SPEC   equ 'q'
+OCT_SPEC    equ 'o'
+LONG_SPEC   equ 'l'
+HEX_U_SPEC  equ 'X'
+HEX_L_SPEC  equ 'x'
+BOOL_SPEC   equ 'B'
 
 handle_fmt_str:
   ; r9 will store how many REG_SIZE sized shifts are we into processing the args
@@ -70,7 +83,7 @@ handle_fmt_str:
   lea rdi, [formatp_buf]
   fmt_str_loop:
      lodsb
-     cmp al, '%'
+     cmp al, CONV_SPEC
      je .escape
        cmp al, NULL_CHAR
        je fmt_str_return
@@ -82,18 +95,18 @@ handle_fmt_str:
        lodsb
     
        xor cl, cl  ; cl is 0 (32 bit arg)
-       cmp al, 'l' ; 64 bit arg instead of 32
+       cmp al, LONG_SPEC ; 64 bit arg instead of 32
        jne fmt_str_handle_fmt_char
        .set_long_arg_flag:
        inc cl      ; cl is now 1 (64 bit arg)
        lodsb
   
        fmt_str_handle_fmt_char:
-       cmp al, 'X' ; edge case no. 1
+       cmp al, HEX_U_SPEC ; edge case no. 1
        je fmt_hex_u
-       cmp al, 'B' ; edge case no. 2
+       cmp al, BOOL_SPEC ; edge case no. 2
        je fmt_bool 
-       cmp al, '%' ; edge case no. 3
+       cmp al, CONV_SPEC ; edge case no. 3
        je fmt_percent
        cmp al, JMP_TABLE_FIRST_CHAR ; any below is def-tly an error
        jb fmt_error
@@ -134,7 +147,7 @@ fmt_bool:
 
 fmt_percent:
   call ensure_no_64_prefix
-  mov al, '%'
+  mov al, CONV_SPEC
   call buf_append_ch 
   jmp fmt_str_loop
 
@@ -220,6 +233,13 @@ fmt_binary:
   call bin2str
   jmp fmt_str_loop
 
+fmt_ternary:
+  call load_arg
+  mov rbx, 3
+  lea r10, [alpha_lower]
+  call num2str
+  jmp fmt_str_loop
+
 fmt_quat:
   call load_arg
   call quat2str
@@ -242,7 +262,7 @@ fmt_error:
   pop rcx
   
   test cl, cl
-  jz .error_32 ; there was no 'l' specificator before
+  jz .error_32 ; there was no LONG_SPEC specificator before
   lea rsi, [fmt_error_str_64]
   jmp .error_str_loaded
   .error_32:
@@ -320,7 +340,7 @@ buf_force_flush:
 buf_flush:
   FD_WRITE
   lea rdi, [formatp_buf]
-  call clear_buf ; call to my own function in main.c
+  call clear_buf
   ret
 
 append_minus:
@@ -341,54 +361,46 @@ clear_buf:
   call memset wrt ..plt
   ret
 
-%macro power_of_2_radix_to_str_func 3
-  power_of_2_radix_to_str_func %1, %2, %3, alpha
+%macro power_of_2_radix_to_str_func 2
+  power_of_2_radix_to_str_func %1, %2, alpha
 %endmacro
 
 ; macro for converting given power of 2 into str
-; declares a label %1 that uses %2 mask and %3 shift
-; to get indexes of alphabet symbols from %4 and put them on the stack,
+; declares a label %1 that uses %2 shift and mask derived from it
+; to get indexes of alphabet symbols from %3 and put them on the stack,
 ; then unwind and append it all to formatp_buf
-%macro power_of_2_radix_to_str_func 4
+%macro power_of_2_radix_to_str_func 3
  %1:
   test rax, rax
   jz num_zero
   xor ecx, ecx
-  lea r10, [%4]
+  lea r10, [%3]
   .windup:
 	  test rax, rax
 	  jz num_unwind
 	  mov rdx, rax
-    and rdx, %2
+    and rdx, (1 << %2) - 1
     mov dl, [r10 + rdx]
     dec rsp
     mov byte [rsp], dl
-	  shr rax, %3
+	  shr rax, %2
     inc rcx
     jmp .windup
   jmp num_unwind 
 %endmacro
 
-BINARY_MASK  equ 1
 BINARY_SHIFT equ 1
+power_of_2_radix_to_str_func bin2str, BINARY_SHIFT
 
-power_of_2_radix_to_str_func bin2str, BINARY_MASK, BINARY_SHIFT
-
-QUATERNARY_MASK  equ 3
 QUATERNARY_SHIFT equ 2
+power_of_2_radix_to_str_func quat2str, QUATERNARY_SHIFT
 
-power_of_2_radix_to_str_func quat2str, QUATERNARY_MASK, QUATERNARY_SHIFT
-
-OCTAL_MASK  equ 7
 OCTAL_SHIFT equ 3
+power_of_2_radix_to_str_func oct2str, OCTAL_SHIFT
 
-power_of_2_radix_to_str_func oct2str, OCTAL_MASK, OCTAL_SHIFT
-
-HEX_MASK  equ 15
 HEX_SHIFT equ 4
-
-power_of_2_radix_to_str_func hex2str_l, HEX_MASK, HEX_SHIFT, alpha_lower
-power_of_2_radix_to_str_func hex2str_u, HEX_MASK, HEX_SHIFT, alpha_upper
+power_of_2_radix_to_str_func hex2str_l, HEX_SHIFT, alpha_lower
+power_of_2_radix_to_str_func hex2str_u, HEX_SHIFT, alpha_upper
 
 ;--------------
 ; num2str - converts number to string of bytes (uses stack to reverse the order)
@@ -448,20 +460,20 @@ true_str_len equ $ - true_str
 fmt_error_str_64: db 0x0A, "[ERROR]: Unrecognized escape sequence: '%%l%c' in ", 0x22, "%s", 0x22, 0x0A, 0
 fmt_error_str_32: db 0x0A, "[ERROR]: Unrecognized escape sequence: '%%%c' in ", 0x22, "%s", 0x22, 0x0A, 0
 
-JMP_TABLE_FIRST_CHAR equ 'b'
-JMP_TABLE_LAST_CHAR  equ 'x'
+JMP_TABLE_FIRST_CHAR equ BIN_SPEC
+JMP_TABLE_LAST_CHAR  equ HEX_L_SPEC
 
 jmp_table:
-                          dq fmt_binary         - jmp_table
-                          dq fmt_char           - jmp_table
-                          dq fmt_decimal        - jmp_table
-  times ('o' - 'd' - 1)   dq fmt_error          - jmp_table
-                          dq fmt_octal          - jmp_table
-  times ('q' - 'o' - 1)   dq fmt_error          - jmp_table ; p
-                          dq fmt_quat           - jmp_table
-  times ('s' - 'q' - 1)   dq fmt_error          - jmp_table ; r
-                          dq fmt_string         - jmp_table
-  times ('u' - 's' - 1)   dq fmt_error          - jmp_table ; t
-                          dq fmt_unsign_decimal - jmp_table
-  times ('x' - 'u' - 1)   dq fmt_error          - jmp_table
-                          dq fmt_hex_l          - jmp_table
+                                         dq fmt_binary         - jmp_table
+                                         dq fmt_char           - jmp_table
+                                         dq fmt_decimal        - jmp_table
+  times (OCT_SPEC - DEC_SPEC - 1)        dq fmt_error          - jmp_table
+                                         dq fmt_octal          - jmp_table
+  times (QUAT_SPEC - OCT_SPEC - 1)       dq fmt_error          - jmp_table
+                                         dq fmt_quat           - jmp_table
+  times (STR_SPEC - QUAT_SPEC - 1)       dq fmt_error          - jmp_table
+                                         dq fmt_string         - jmp_table
+                                         dq fmt_ternary        - jmp_table
+                                         dq fmt_unsign_decimal - jmp_table
+  times (HEX_L_SPEC - UNSIGN_SPEC - 1)   dq fmt_error          - jmp_table
+                                         dq fmt_hex_l          - jmp_table

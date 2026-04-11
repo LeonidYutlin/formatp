@@ -9,8 +9,7 @@ int main(void) {
 }
 
 void runTests() {
-  formatp("%t5 ", 8); // output: 022 (?) 0225
-
+  formatp("%t5 ", 79); // output: 022
   formatp("What if i try to use l where im not supposed to? %lB", 1);
   formatp("Hi there is an error in this fmt str %r\n");
   formatp("And here %lE too\n");

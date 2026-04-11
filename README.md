@@ -16,7 +16,7 @@ To compile and run
 make run
 ```
 
-- ## Usage
+## Usage
 
 ### Prerequisites 
 - Linking with `libc` - for `memset` and `strlen`
@@ -56,6 +56,7 @@ Full list of available conversion specifiers is listed down below:
 | `%d\%ld`       | **D**ecimal      | `int\long`   | 32\64-bit signed decimal |
 | `%u\%lu`       | **U**nsigned     | `uint\ulong` | 32\64-bit unsigned decimal |
 | `%b\%lb`       | **B**inary       | `int\long`   | 32\64-bit unsigned binary |
+| `%t\%lt`       | **T**ernary      | `int\long`   | 32\64-bit unsigned ternary |
 | `%q\%lq`       | **Q**uaternary   | `int\long`   | 32\64-bit unsigned quaternary |
 | `%o\%lo`       | **O**ctal        | `int\long`   | 32\64-bit unsigned octal |
 | `%x\%lx`       | he**X**adecimal  | `int\long`   | 32\64-bit unsigned hexadecimal in lowercase |
@@ -86,8 +87,9 @@ int main(void) {
             "Binary:  %b\n"
             "Octal:   %o\n"
             "Hexa:    %x (or %X)\n"
-            "Quat:    %q\n", 
-            79, 79, 79, 79, 79, 79);
+            "Quat:    %q\n"
+            "Ternary: %t\n", 
+            79, 79, 79, 79, 79, 79, 79);
 
     formatp("Boolean true: %B\n", 10);
     formatp("Boolean false: %B\n", 1 - 1);
@@ -108,6 +110,7 @@ Binary:  1001111
 Octal:   117
 Hexa:    4f (or 4F)
 Quat:    1033
+Ternary: 2221
 Boolean true: true
 Boolean false: false
 Hello is a string that isn't (null)
