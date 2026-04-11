@@ -67,7 +67,7 @@ Full list of available conversion specifiers is listed down below:
 | Specificator | Mnemonic         | Expects      | Output |
 |--------------|------------------|--------------|--------|
 | `%c`           | **C**haracter    | `char`       | single 8-bit character |
-| `%s`           | **S**tring       | `char*`      | if the pointer isn't NULL, prints characters until `'\0'` is reached, otherwise prints `"(null)"`. This specification forces a buffer flush before processing |
+| `%s`           | **S**tring       | `char*`      | if the pointer isn't `NULL`, prints characters until `'\0'` is reached, otherwise prints `"(null)"`. This specification forces a buffer flush before processing |
 | `%d\%ld`       | **D**ecimal      | `int\long`   | 32\64-bit signed decimal |
 | `%u\%lu`       | **U**nsigned     | `uint\ulong` | 32\64-bit unsigned decimal |
 | `%b\%lb`       | **B**inary       | `int\long`   | 32\64-bit unsigned binary |
@@ -75,7 +75,7 @@ Full list of available conversion specifiers is listed down below:
 | `%o\%lo`       | **O**ctal        | `int\long`   | 32\64-bit unsigned octal |
 | `%x\%lx`       | he**X**adecimal  | `int\long`   | 32\64-bit unsigned hexadecimal in lowercase |
 | `%X\%lX`       | he**X**adecimal  | `int\long`   | 32\64-bit unsigned hexadecimal in uppercase |
-| `%B`           | **B**oolean      | `long`       | `"false"` if `bool == 0`, `"true"` otherwise |
+| `%B`           | **B**oolean      | `long`       | `"false"` if the argument is 0, `"true"` otherwise |
 | `%%`           | -                | -          | the percent character itself, `'%'` |
 
 **Return value**
