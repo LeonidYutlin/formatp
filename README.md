@@ -69,7 +69,7 @@ Full list of available conversion specifiers is listed down below:
 
 **Return value**
 
-Number of characters that was successfully printed
+Number of characters that was printed. If an error occurs, 0 is returned.
 
 [^1]: mostly inspired by [cpp reference](https://en.cppreference.com/w/c/io/fprintf)
 
@@ -188,10 +188,10 @@ formatp("I only need one argument: %c", 'a', 123, 'r'); //123 and 'r' are ignore
 - If the format string contains an unknown conversion specification, 
 `formatp` uses itself to report an error to `stderr`
 ```c
-formatp("Apples start with the letter %A"); //causes an error to stderr
+formatp("Apples start with the letter %Apples"); //causes an error to stderr
 ```
 ```
-blabla
+ [ERROR]: Unknown conversion type character: 'A' in format ..."e letter %Apples"...
 ```
 - You can add compiler-specific attributes to the prototype of `formatp` function, 
 but that would also disable `formatp`-exclusive specifications

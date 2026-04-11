@@ -13,6 +13,8 @@ void runTests() {
   formatp("%s with 3 characters is just %z\n", "Funeral", 3, "Funeral");
   formatp("%s with 3 characters is just %z\n", NULL, 3, NULL);
 
+  formatp("\n\n7 in base 1 is %r1\n\n", 7);
+
   formatp("base 2 - %lr2\n"
           "base 3 - %lr3\n"
           "base 4 - %r4\n"
@@ -42,8 +44,8 @@ void runTests() {
           n1, n2, n3);
 
   formatp("What if i try to use l where im not supposed to? %lB", 1);
-  formatp("Hi there is an error in this fmt str %r\n");
-  formatp("And here %lE too\n");
+  formatp("!!!!returned a %u\n", formatp("Hi there is an error in this fmt str %r\n"));
+  formatp("And here %lE too wow what a long message definetily longer than needed wow wow\n");
 
   formatp("%ld is %lb\n", -4l, -4l);
   formatp("%ld\nvs\n%d\n", ULONG_MAX, ULONG_MAX);

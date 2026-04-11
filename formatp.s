@@ -180,7 +180,9 @@ fmt_sized_string:
 
   .nonnull:
   mov rdi, rsi
+  push rcx
   call strlen wrt ..plt
+  pop rcx
   cmp rcx, rax
   jae .print
   mov rax, rcx
@@ -297,6 +299,7 @@ fmt_radix_common:
 
   .error:
     add rsp, REG_SIZE
+    lodsb
     jmp fmt_error
 
 fmt_radix_l:
@@ -322,17 +325,24 @@ fmt_octal:
   jmp fmt_str_loop
 
 STDERR_FD equ 2
-FMT_ERROR_ARGC equ 4
+FMT_ERROR_ARGC equ 5
+
+FMT_ERROR_STR_SNIPPET_SZ equ 18
+FMT_ERROR_STR_SNIPPET_OFFSET equ 9
 
 fmt_error:
-  push [rbp + FMT_STR_ARG_INDEX * REG_SIZE] ; fmt str we failed to parse will be %s
+  mov rcx, [rbp + FMT_STR_ARG_INDEX * REG_SIZE] ; fmt str we failed to parse
+  cmp r15, FMT_ERROR_STR_SNIPPET_OFFSET
+  jbe .skip_offset
+  add rcx, r15
+  sub rcx, FMT_ERROR_STR_SNIPPET_OFFSET
+  .skip_offset:
+  push rcx
+  push FMT_ERROR_STR_SNIPPET_SZ
   push rax ; push the char we failed to recognize as %c
 
-  push rcx
   call buf_force_flush
-  pop rcx
   
-  test cl, cl
   lea rsi, [fmt_error_str]
   push rsi
   push STDERR_FD
@@ -341,6 +351,7 @@ fmt_error:
   call handle_fmt_str
   pop rbp
   add rsp, REG_SIZE * FMT_ERROR_ARGC
+  xor r15d, r15d
   jmp fmt_str_return
 
 ensure_no_64_prefix:
@@ -479,6 +490,10 @@ power_of_2_radix_to_str_func hex2str_u, HEX_SHIFT, alpha_upper
 str2num:
   xor eax, eax
   xor ebx, ebx
+  lodsb
+  cmp al, '0'
+  jbe .exit
+  dec rsi
   .loop:
     lodsb
     cmp al, '0'
@@ -507,6 +522,8 @@ str2num:
 num2str:
   test rax, rax
   jz num_zero
+  cmp rbx, 1
+  je base1
   xor ecx, ecx
   .windup:
 	  test rax, rax
@@ -519,6 +536,14 @@ num2str:
     inc rcx
     jmp .windup
   jmp num_unwind
+
+base1:
+  mov rcx, rax
+  mov al, '0'
+  .loop:
+  call buf_append_ch
+  loop .loop
+  ret
 
 num_zero:
   call append_zero
@@ -552,7 +577,7 @@ false_str_len equ $ - false_str
 true_str: db "true"
 true_str_len equ $ - true_str
 
-fmt_error_str: db 0x0A, "[ERROR]: Unknown conversion type character: '%c' in format ", 0x22, "%s", 0x22, 0x0A, 0
+fmt_error_str: db 0x0A, "[ERROR]: Unknown conversion type character: '%c' in format ...", 0x22, "%z", 0x22, "...", 0x0A, 0
 
 JMP_TABLE_FIRST_CHAR equ BOOL_SPEC
 JMP_TABLE_LAST_CHAR  equ SZ_STR_SPEC
