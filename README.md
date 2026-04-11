@@ -1,35 +1,65 @@
 # formatp
 
-formatp is an implementation of a `printf`-like function in Assembly for UNIX-like systems (with Windows version due)
+`formatp` is an implementation of a `printf`-like function in Assembly for UNIX-like systems
 
 ## Installation
 
-Whilst being in the root directory of the project
+While being in the root directory of the project
 
-To compile, run
+To compile
 ```shell
 make
 ```
 
-To both compile and run the program, run
+To compile and run
 ```shell
 make run
 ```
 
 ## Capabilities
 - Formatted output to any valid file descriptor
-- The output is not immediate, but instead buffered in order to issue less write syscalls
-- `formatp` uses an internal jump table to reduce the number of comparisons per percent processed
-- In UNIX-like systems, the assembly bindings are PIE-compliant, ensuring your program is less vulnerable to hack attempts
-- If the format string contains an unknown `%` specificator, `formatp` uses itself to report
-an error to `stderr`, in a form of the following message:
->     [ERROR]: Unrecognized escape sequence: '%...' in "%..."
-- Multiple specificators, all of them listed below:
+- Supports multiple conversion specifications, some of which are exclusive to `formatp`
+- If the format string contains an unknown conversion specification, `formatp` uses itself to report an error to `stderr`
+```c
+formatp("Apples start with letter %A"); //causes an error to stderr
+```
+Output:
+```shell
+blabla
+```
+- The output is buffered to issue less write syscalls
+- `formatp` uses an internal jump table to reduce comparisons per '%' processed
+- The assembly bindings are PIE-compliant
+
+## Usage
+
+### Prerequisites 
+- Linking with `libc` - for `memset` and `strlen`
+
+### Synopsis [^1]
+Defined in header `formatp.h`
+```c
+void formatp(const char* format, ...); //(1)
+void fformatp(FILE* stream, const char* format, ...); //(2)
+```
+Converts given args to character string equivalent, dictated by conversion specifiers inside `format` and writes the result to:
+    1) output stream `stdout`
+    2) output stream `stream`
+
+**Parameters**
+
+`stream` - output file stream to write to
+`format` - pointer to a null-terminated char string, whose contents dictate how to interpret the data
+`...`    - arguments specifying the data to print
+
+`format` string's content is printed as-is, until a conversion specifier ('%') is reached. Depending on the conversion specifier, the next argument (or arguments) will be interpreted and converted to string differently
+
+Full list of available conversion specifiers is listed down below:
 
 | Specificator | Mnemonic         | Expects      | Output |
 |--------------|------------------|--------------|--------|
 | `%c`           | **C**haracter    | `char`       | single 8-bit character |
-| `%s`           | **S**tring       | `char*`      | "(null)" if the provided pointer is NULL, otherwise the string itself, not including the '\0' character (causes a buffer flush before processing) |
+| `%s`           | **S**tring       | `char*`      | if the pointer isn't NULL, prints charactersuntil '\0' is reached, otherwise prints "(null)". This specification forces a buffer flush before processing |
 | `%d\%ld`       | **D**ecimal      | `int\long`   | 32\64-bit signed decimal |
 | `%u\%lu`       | **U**nsigned     | `uint\ulong` | 32\64-bit unsigned decimal |
 | `%b\%lb`       | **B**inary       | `int\long`   | 32\64-bit unsigned binary |
@@ -38,44 +68,56 @@ an error to `stderr`, in a form of the following message:
 | `%x\%lx`       | he**X**adecimal  | `int\long`   | 32\64-bit unsigned hexadecimal in lowercase |
 | `%X\%lX`       | he**X**adecimal  | `int\long`   | 32\64-bit unsigned hexadecimal in uppercase |
 | `%B`           | **B**oolean      | `long`       | "false" if bool == 0, "true" otherwise |
-| `%%`           | -                | -          | percent character itself '%' |
+| `%%`           | -                | -          | the percent character itself, '%' |
 
-### Notes
-- `formatp` cannot check types of the arguments provided to it, so you may need to explicitly cast some arguments to their type.
-For example instead of `fformatp_(1, "Long: %ld", -4)` you should type `fformatp_(1, "Long: %ld", -4l)` to tell C that you explicitly want a 64-bit integer here.
-- `formatp` is not protected from the number of arguments needed by `%` specificators exceeding the number of arguments provided to the function
-- You can add compiler-specific attributes to the prototype of `formatp` function, but that would also disable `formatp` exclusive specificators
-```c
-//for example, using gcc
-extern void fformatp_(int fd, const char* fmt, ...)  __attribute__ ((format (printf, 2, 3)));
-```
+**Return value**
+None
 
-## Usage
+[^1]: mostly inspired by [cpp reference](https://en.cppreference.com/w/c/io/fprintf)
 
-### Prerequisites 
-formatp depends on `libc`'s `memset` and `strlen`, which is why you will need to link with `libc`
-
-### Minimal working example
-
-To use `formatp` in your code, you need to declare an external function prototype in your C code.
+### Example
 
 ```c
-extern void fformatp_(int file_descriptor, const char* format_string, ...);
+#include "formatp.h"
 
 int main(void) {
-    fformatp_(1, "Hello, %s!", "World");
+    formatp("Hello, %s!", "World");
     return 0;
 }
 ```
 
-Or you can use `formatp.h`, which has these provided for you, including some additional macros. `formatp.h` includes `<stdio.h>` (disableable by `#define FORMATP_NO_STDIO`), which is used for `fileno` in macros.
 
-### Additional Macros
+### Notes
+- `formatp` cannot check types of the arguments provided to it, so you may need to explicitly cast some arguments to the desired type.
+```c
+formatp("Long: %ld\n", -4); //here -4 is 32-bit signed int, and formatp expects a 64-bit one
+//instead, type:
+formatp("Long: %ld\n", -4l); //this is correct
+```
+- If the number of arguments needed by conversion specifications are greater than the number of arguments provided, the behavior is undefined. If the argument amount is more than the amount needed, the excess arguments are evaluated but never accessed/printed
+```c
+formatp("Hello %s! Have an int %d!", "World"); //undefined behavior
+formatp("I only need one argument: %c", 'a', 123, 'r'); //123 and 'r' are ignored
+```
+- You can add compiler-specific attributes to the prototype of `formatp` function, but that would also disable `formatp`-exclusive specifications
+```c
+//for example, using gcc attributes
+#define FORMATP_ATTRIBUTE __attribute__ ((format (printf, 2, 3)))
+#include "formatp.h"
+```
+- `formatp.h` includes `<stdio.h>` (disableable by `#define FORMATP_NO_STDIO`), which is used for `fileno` in macros
 
-You can also add some macros to ease the use of `formatp`
+### Implementation details
+
+`formatp.h` contains macros that wrap the assembly bindings in a more user-friendly way
 ```c
 #define formatp(fmt, ...) \
   fformatp(stdout, fmt __VA_OPT__(,) __VA_ARGS__)
 #define fformatp(file, fmt, ...) \
   fformatp_(fileno((file)), fmt __VA_OPT__(,) __VA_ARGS__)
 ```
+In reality, the original assembly function is defined like this
+```c
+extern void fformatp_(int file_descriptor, const char* format_string, ...);
+```
+It is not recommended to call the original assembly function, instead use the defined macros
