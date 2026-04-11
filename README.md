@@ -24,8 +24,8 @@ make run
 ### Synopsis [^1]
 Defined in header `formatp.h`
 ```c
-size_t formatp(const char* format, ...); //(1)
-size_t fformatp(FILE* stream, const char* format, ...); //(2)
+/* (1) */ size_t formatp(const char* format, ...);
+/* (2) */ size_t fformatp(FILE* stream, const char* format, ...);
 ```
 Converts given args to character string equivalent, 
 dictated by conversion specifiers inside `format` and writes the result to:
@@ -43,7 +43,7 @@ how to interpret the data
 `...`    - arguments specifying the data to print
 
 
-`format` string's content is printed as-is, until a conversion specifier (`'%'`) is reached. 
+`format` string's contents are printed as-is, until a conversion specifier (`'%'`) is reached. 
 Depending on the conversion specifier, the next argument (or arguments) 
 will be interpreted and converted to string differently
 
@@ -61,7 +61,7 @@ Full list of available conversion specifiers is listed down below:
 | `%x\%lx`       | he**X**adecimal  | `int\long`   | 32\64-bit unsigned hexadecimal in lowercase |
 | `%X\%lX`       | he**X**adecimal  | `int\long`   | 32\64-bit unsigned hexadecimal in uppercase |
 | `%B`           | **B**oolean      | `long`       | `"false"` if the argument is 0, `"true"` otherwise |
-| `%n`           | **N**umber of bytes | `long*`      | writes the number of bytes written so far (including those that are buffered at the moment) to a pointer. If the pointer is `NULL`, does nothing  |
+| `%n`           | **N**umber of bytes | `size_t*`      | produces no output, instead writes the number of bytes written so far (including those that are buffered at the moment) to a pointer. If the pointer is `NULL`, does nothing  |
 | `%%`           | -                | -          | the percent character itself, `'%'` |
 
 **Return value**
