@@ -19,11 +19,11 @@ make run
 ## Capabilities
 - Formatted output to any valid file descriptor
 - Supports multiple conversion specifications, some of which are exclusive to `formatp`
-- If the format string contains an unknown conversion specification, `formatp` uses itself to report an error to `stderr`
+- If the format string contains an unknown conversion specification, 
+`formatp` uses itself to report an error to `stderr`
 ```c
 formatp("Apples start with letter %A"); //causes an error to stderr
 ```
-Output:
 ```shell
 blabla
 ```
@@ -42,17 +42,24 @@ Defined in header `formatp.h`
 void formatp(const char* format, ...); //(1)
 void fformatp(FILE* stream, const char* format, ...); //(2)
 ```
-Converts given args to character string equivalent, dictated by conversion specifiers inside `format` and writes the result to:
-    1) output stream `stdout`
-    2) output stream `stream`
+Converts given args to character string equivalent, 
+dictated by conversion specifiers inside `format` and writes the result to:
+
+1. output stream `stdout`
+2. output stream `stream`
 
 **Parameters**
 
 `stream` - output file stream to write to
-`format` - pointer to a null-terminated char string, whose contents dictate how to interpret the data
+
+`format` - pointer to a null-terminated char string, whose contents dictate 
+how to interpret the data
+
 `...`    - arguments specifying the data to print
 
-`format` string's content is printed as-is, until a conversion specifier ('%') is reached. Depending on the conversion specifier, the next argument (or arguments) will be interpreted and converted to string differently
+`format` string's content is printed as-is, until a conversion specifier ('%') is reached. 
+Depending on the conversion specifier, the next argument (or arguments) 
+will be interpreted and converted to string differently
 
 Full list of available conversion specifiers is listed down below:
 
@@ -88,24 +95,30 @@ int main(void) {
 
 
 ### Notes
-- `formatp` cannot check types of the arguments provided to it, so you may need to explicitly cast some arguments to the desired type.
+- `formatp` cannot check types of the arguments provided to it, 
+so you may need to explicitly cast some arguments to the desired type
 ```c
 formatp("Long: %ld\n", -4); //here -4 is 32-bit signed int, and formatp expects a 64-bit one
 //instead, type:
 formatp("Long: %ld\n", -4l); //this is correct
 ```
-- If the number of arguments needed by conversion specifications are greater than the number of arguments provided, the behavior is undefined. If the argument amount is more than the amount needed, the excess arguments are evaluated but never accessed/printed
+- If the number of arguments needed by conversion specifications are greater than 
+the number of arguments provided, the behavior is undefined. 
+If the argument amount is more than the amount needed, the excess arguments 
+are evaluated but never accessed/printed
 ```c
 formatp("Hello %s! Have an int %d!", "World"); //undefined behavior
 formatp("I only need one argument: %c", 'a', 123, 'r'); //123 and 'r' are ignored
 ```
-- You can add compiler-specific attributes to the prototype of `formatp` function, but that would also disable `formatp`-exclusive specifications
+- You can add compiler-specific attributes to the prototype of `formatp` function, 
+but that would also disable `formatp`-exclusive specifications
 ```c
 //for example, using gcc attributes
 #define FORMATP_ATTRIBUTE __attribute__ ((format (printf, 2, 3)))
 #include "formatp.h"
 ```
-- `formatp.h` includes `<stdio.h>` (disableable by `#define FORMATP_NO_STDIO`), which is used for `fileno` in macros
+- `formatp.h` includes `<stdio.h>` (disableable by `#define FORMATP_NO_STDIO`), 
+which is used for `fileno` in macros
 
 ### Implementation details
 
