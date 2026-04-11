@@ -18,17 +18,17 @@ make run
 
 ## Capabilities
 - Formatted output to any valid file descriptor
-- Supports multiple conversion specifications, some of which are exclusive to `formatp`
+ Supports multiple conversion specifications, some of which are exclusive to `formatp`
 - If the format string contains an unknown conversion specification, 
 `formatp` uses itself to report an error to `stderr`
 ```c
-formatp("Apples start with letter %A"); //causes an error to stderr
+formatp("Apples start with the letter %A"); //causes an error to stderr
 ```
 ```shell
 blabla
 ```
 - The output is buffered to issue less write syscalls
-- `formatp` uses an internal jump table to reduce comparisons per '%' processed
+- `formatp` uses an internal jump table to reduce comparisons per `'%'` processed
 - The assembly bindings are PIE-compliant
 
 ## Usage
@@ -57,7 +57,8 @@ how to interpret the data
 
 `...`    - arguments specifying the data to print
 
-`format` string's content is printed as-is, until a conversion specifier ('%') is reached. 
+
+`format` string's content is printed as-is, until a conversion specifier (`'%'`) is reached. 
 Depending on the conversion specifier, the next argument (or arguments) 
 will be interpreted and converted to string differently
 
@@ -66,7 +67,7 @@ Full list of available conversion specifiers is listed down below:
 | Specificator | Mnemonic         | Expects      | Output |
 |--------------|------------------|--------------|--------|
 | `%c`           | **C**haracter    | `char`       | single 8-bit character |
-| `%s`           | **S**tring       | `char*`      | if the pointer isn't NULL, prints charactersuntil '\0' is reached, otherwise prints "(null)". This specification forces a buffer flush before processing |
+| `%s`           | **S**tring       | `char*`      | if the pointer isn't NULL, prints characters until `'\0'` is reached, otherwise prints `"(null)"`. This specification forces a buffer flush before processing |
 | `%d\%ld`       | **D**ecimal      | `int\long`   | 32\64-bit signed decimal |
 | `%u\%lu`       | **U**nsigned     | `uint\ulong` | 32\64-bit unsigned decimal |
 | `%b\%lb`       | **B**inary       | `int\long`   | 32\64-bit unsigned binary |
@@ -74,10 +75,11 @@ Full list of available conversion specifiers is listed down below:
 | `%o\%lo`       | **O**ctal        | `int\long`   | 32\64-bit unsigned octal |
 | `%x\%lx`       | he**X**adecimal  | `int\long`   | 32\64-bit unsigned hexadecimal in lowercase |
 | `%X\%lX`       | he**X**adecimal  | `int\long`   | 32\64-bit unsigned hexadecimal in uppercase |
-| `%B`           | **B**oolean      | `long`       | "false" if bool == 0, "true" otherwise |
-| `%%`           | -                | -          | the percent character itself, '%' |
+| `%B`           | **B**oolean      | `long`       | `"false"` if `bool == 0`, `"true"` otherwise |
+| `%%`           | -                | -          | the percent character itself, `'%'` |
 
 **Return value**
+
 None
 
 [^1]: mostly inspired by [cpp reference](https://en.cppreference.com/w/c/io/fprintf)
