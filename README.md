@@ -16,22 +16,7 @@ To compile and run
 make run
 ```
 
-## Capabilities
-- Formatted output to any valid file descriptor
- Supports multiple conversion specifications, some of which are exclusive to `formatp`
-- If the format string contains an unknown conversion specification, 
-`formatp` uses itself to report an error to `stderr`
-```c
-formatp("Apples start with the letter %A"); //causes an error to stderr
-```
-```
-blabla
-```
-- The output is buffered to issue less write syscalls
-- `formatp` uses an internal jump table to reduce comparisons per `'%'` processed
-- The assembly bindings are PIE-compliant
-
-## Usage
+- ## Usage
 
 ### Prerequisites 
 - Linking with `libc` - for `memset` and `strlen`
@@ -144,6 +129,14 @@ are evaluated but never accessed/printed
 formatp("Hello %s! Have an int %d!", "World"); //undefined behavior
 formatp("I only need one argument: %c", 'a', 123, 'r'); //123 and 'r' are ignored
 ```
+- If the format string contains an unknown conversion specification, 
+`formatp` uses itself to report an error to `stderr`
+```c
+formatp("Apples start with the letter %A"); //causes an error to stderr
+```
+```
+blabla
+```
 - You can add compiler-specific attributes to the prototype of `formatp` function, 
 but that would also disable `formatp`-exclusive specifications
 ```c
@@ -155,6 +148,10 @@ but that would also disable `formatp`-exclusive specifications
 which is used for `fileno` in macros
 
 ### Implementation details
+
+- The output is buffered to issue less write syscalls
+- `formatp` uses an internal jump table to reduce comparisons per `'%'` processed
+- The assembly bindings are PIE-compliant
 
 `formatp.h` contains macros that wrap the assembly bindings in a more user-friendly way
 ```c
