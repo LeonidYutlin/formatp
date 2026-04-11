@@ -24,7 +24,7 @@ make run
 ```c
 formatp("Apples start with the letter %A"); //causes an error to stderr
 ```
-```shell
+```
 blabla
 ```
 - The output is buffered to issue less write syscalls
@@ -90,11 +90,43 @@ None
 #include "formatp.h"
 
 int main(void) {
-    formatp("Hello, %s!", "World");
+    formatp("%ld is\n"
+            "%lb\n", 
+            -4l, -4l);
+    formatp("Hi I %cm a %% string\n", 'a');
+    formatp("Characters! %c %c %c\n", 'A', 'p', 'D');
+    formatp("I know that %c has ASCII code %d!\n", 'Q', 'Q');
+
+    formatp("Decimal: %d\n"
+            "Binary:  %b\n"
+            "Octal:   %o\n"
+            "Hexa:    %x (or %X)\n"
+            "Quat:    %q\n", 
+            79, 79, 79, 79, 79, 79);
+
+    formatp("Boolean true: %B\n", 10);
+    formatp("Boolean false: %B\n", 1 - 1);
+    formatp("%s is a string that isn't %s\n", "Hello", NULL);
+
     return 0;
 }
 ```
-
+Output:
+```
+-4 is
+1111111111111111111111111111111111111111111111111111111111111100
+Hi I am a % string
+Characters! A p D
+I know that Q has ASCII code 81!
+Decimal: 79
+Binary:  1001111
+Octal:   117
+Hexa:    4f (or 4F)
+Quat:    1033
+Boolean true: true
+Boolean false: false
+Hello is a string that isn't (null)
+```
 
 ### Notes
 - `formatp` cannot check types of the arguments provided to it, 

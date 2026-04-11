@@ -76,6 +76,7 @@ handle_fmt_str:
        je fmt_str_return
        call buf_append_ch
        jmp fmt_str_loop
+
      .escape:
        xor eax, eax
        lodsb

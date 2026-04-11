@@ -10,6 +10,10 @@
   fformatp_(fileno((file)), fmt __VA_OPT__(,) __VA_ARGS__)
 #endif
 
-extern void fformatp_(int fd, const char* fmt, ...)  /*__attribute__ ((format (printf, 2, 3)))*/;
+#ifdef FORMATP_ATTRIBUTE
+extern void fformatp_(int fd, const char* fmt, ...)  FORMATP_ATTRIBUTE ;
+#else
+extern void fformatp_(int fd, const char* fmt, ...);
+#endif
 
 #endif
