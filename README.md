@@ -21,7 +21,7 @@ make run
 ### Prerequisites 
 - Linking with `libc` - for `memset` and `strlen`
 
-### Synopsis [^1]
+## Synopsis [^1]
 Defined in header `formatp.h`
 ```c
 /* (1) */ size_t formatp(const char* format, ...);
@@ -33,7 +33,7 @@ dictated by conversion specifiers inside `format` and writes the result to:
 1. output stream `stdout`
 2. output stream `stream`
 
-**Parameters**
+### Parameters
 
 `stream` - output file stream to write to
 
@@ -67,7 +67,7 @@ Full list of available conversion specifiers is listed down below:
 | `%n`           | **N**umber of bytes | `size_t*`      | produces no output, instead writes the number of bytes written so far (including those that are buffered at the moment) to a pointer. If the pointer is `NULL`, does nothing  |
 | `%%`           | -                | -          | the percent character itself, `'%'` |
 
-**Return value**
+### Return value
 
 Number of characters that was printed. If an error occurs, 0 is returned.
 
@@ -173,22 +173,22 @@ base 36 - z (or Z)
 - `formatp` cannot check types of the arguments provided to it, 
 so you may need to explicitly cast some arguments to the desired type
 ```c
-formatp("Long: %ld\n", -4); //here -4 is 32-bit signed int, and formatp expects a 64-bit one
-//instead, type:
-formatp("Long: %ld\n", -4l); //this is correct
+formatp("Long: %ld\n", -4); // here -4 is 32-bit signed int, and formatp expects a 64-bit one
+// instead, type:
+formatp("Long: %ld\n", -4l); // this is correct
 ```
 - If the number of arguments needed by conversion specifications are greater than 
 the number of arguments provided, the behavior is undefined. 
 If the argument amount is more than the amount needed, the excess arguments 
 are evaluated but never accessed/printed
 ```c
-formatp("Hello %s! Have an int %d!", "World"); //undefined behavior
-formatp("I only need one argument: %c", 'a', 123, 'r'); //123 and 'r' are ignored
+formatp("Hello %s! Have an int %d!", "World"); // undefined behavior
+formatp("I only need one argument: %c", 'a', 123, 'r'); // 123 and 'r' are ignored
 ```
 - If the format string contains an unknown conversion specification, 
 `formatp` uses itself to report an error to `stderr`
 ```c
-formatp("Apples start with the letter %Apples"); //causes an error to stderr
+formatp("Apples start with the letter %Apples"); // causes an error to stderr
 ```
 ```
  [ERROR]: Unknown conversion type character: 'A' in format ..."e letter %Apples"...
