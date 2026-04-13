@@ -47,7 +47,7 @@ how to interpret the data
 Depending on the conversion specifier, the next argument (or arguments) 
 will be interpreted and converted to string differently
 
-Full list of available conversion specifiers is listed down below:
+The full list of available conversion specifiers is listed below:
 
 | Specificator | Mnemonic         | Expects      | Output |
 |--------------|------------------|--------------|--------|
@@ -69,7 +69,7 @@ Full list of available conversion specifiers is listed down below:
 
 ### Return value
 
-Number of characters that was printed. If an error occurs, 0 is returned.
+Number of characters that were printed. If an error occurs, 0 is returned
 
 [^1]: mostly inspired by [cpp reference](https://en.cppreference.com/w/c/io/fprintf)
 
@@ -170,17 +170,17 @@ base 36 - z (or Z)
 ```
 
 ### Notes
-- `formatp` cannot check types of the arguments provided to it, 
+- `formatp` cannot check the types of the arguments provided to it, 
 so you may need to explicitly cast some arguments to the desired type
 ```c
 formatp("Long: %ld\n", -4); // here -4 is 32-bit signed int, and formatp expects a 64-bit one
 // instead, type:
 formatp("Long: %ld\n", -4l); // this is correct
 ```
-- If the number of arguments needed by conversion specifications are greater than 
+- If the number of arguments needed by conversion specifications is greater than 
 the number of arguments provided, the behavior is undefined. 
 If the argument amount is more than the amount needed, the excess arguments 
-are evaluated but never accessed/printed
+are evaluated, but never accessed/printed
 ```c
 formatp("Hello %s! Have an int %d!", "World"); // undefined behavior
 formatp("I only need one argument: %c", 'a', 123, 'r'); // 123 and 'r' are ignored
@@ -205,10 +205,10 @@ which is used for `fileno` in macros
 
 ### Implementation details
 
-- The output is buffered to issue less write syscalls
+- The output is buffered to issue fewer write syscalls
 - `formatp` uses an internal jump table to reduce comparisons per `'%'` processed
 - The assembly bindings are PIE-compliant
-- If you can use an alternative conversion specification for a power of 2 base number (for example instead of `%r8` you can use `%o`), then it is better to use the version that isn't `%r`, since all powers of 2 conversions use bit shifts instead of division, making them faster
+- If you can use an alternative conversion specification for a power of 2 base number (for example instead of `%r8` you can use `%o`), then it is better to use a version that isn't `%r`, since all powers of 2 conversions use bit shifts instead of division, making them faster
 
 
 `formatp.h` contains macros that wrap the assembly bindings in a more user-friendly way
