@@ -196,7 +196,7 @@ formatp("Apples start with the letter %Apples"); // causes an error to stderr
 - You can add compiler-specific attributes to the prototype of `formatp` function, 
 but that would also disable `formatp`-exclusive specifications
 ```c
-//for example, using gcc attributes
+// for example, using gcc attributes
 #define FORMATP_ATTRIBUTE __attribute__ ((format (printf, 2, 3)))
 #include "formatp.h"
 ```

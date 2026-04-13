@@ -84,7 +84,7 @@ void runTests() {
           "\tdecimals - %d\n"
           "%d %s %X %d%%%c%b\n",
           'A', 
-          "Wello Horld", 
+          "Hello World", 
           123,
           -1, "LOVE", 3802, 100, 33, 126);
 }

@@ -14,6 +14,7 @@ BUF_SIZE equ 64
 REG_SIZE equ 8
 
 section .bss
+
 formatp_buf: resb BUF_SIZE
 
 section .text
